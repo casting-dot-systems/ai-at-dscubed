@@ -21,12 +21,19 @@ from config import DiscordBotConfig
 from engine_manager import EngineManager
 from message_processor import MessageProcessor
 from session_manager import SessionManager
+from scrum_engine import (
+    ScrumMasterEngine,
+    ScrumMasterCommand,
+    ScrumMasterEngineStatusEvent,
+    ScrumMasterConfirmEndConversationCommand,
+    ScrumMasterEngineToolResultEvent,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 
-class DarcyBot:
+class ScrumMasterBot:
     def __init__(self) -> None:
         # Load configuration
         self.config = DiscordBotConfig.load_from_env()
@@ -38,23 +45,17 @@ class DarcyBot:
         self.bot: commands.Bot = commands.Bot(command_prefix="!", intents=intents)
 
         # Initialize managers
-        self.session_manager: SessionManager = SessionManager(self.bot)
-        self.message_processor: MessageProcessor = MessageProcessor(
-            self.config, self.session_manager
-        )
-        self.engine_manager: EngineManager = EngineManager(
-            self.config, self.session_manager
-        )
-        self.channel_register: dict[str, str] = {}
+        self.channel_register: dict[str, tuple[str, ScrumMasterEngine]] = {}
 
         # Set up event handlers
-        self.bot.event(self.on_ready)
         self.bot.event(self.on_message)
 
-    def register_channel(self, session_id: str, channel_id: str) -> None:
-        self.channel_register[session_id] = channel_id
+    def create_session(
+        self, session_id: str, channel_id: str, engine: ScrumMasterEngine
+    ) -> None:
+        self.channel_register[channel_id] = (session_id, engine)
 
-    def unregister_channel(self, session_id: str) -> None:
+    def end_session(self, session_id: str) -> None:
         self.channel_register.pop(session_id)
 
     async def on_message(self, message: discord.Message) -> None:
@@ -66,33 +67,14 @@ class DarcyBot:
             return
 
         assert self.bot.user is not None
-        if self.bot.user.mentioned_in(message):
-            # Process the message
-            (
-                processed_message,
-                session_id,
-            ) = await self.message_processor.process_mention(message)
 
-            # Create command and use engine
-            from darcy.notion_crud_engine_v3 import NotionCRUDEnginePromptCommand
-
-            command = NotionCRUDEnginePromptCommand(prompt=processed_message.content)
-            result = await self.engine_manager.use_engine(command, session_id)
-
-            # Send response
-            if result.result:
-                await message.reply(
-                    f"{result.result[: self.config.max_response_length]}"
-                )
-            else:
-                await message.reply(
-                    "❌ An error occurred. Sorry about that, please forgive me!!"
-                )
-
-            # Complete the session
-            await self.session_manager.complete_session(session_id, "Session completed")
-
-        await self.bot.process_commands(message)
+        if str(message.channel.id) in self.channel_register.keys():
+            response = await self.channel_register[str(message.channel.id)][
+                1
+            ].handle_command(ScrumMasterCommand(prompt=message.content))
+            await message.reply(response.result)
+        else:
+            print("Message received in unregistered channel")
 
     async def start(self):
         """Start the bot and all necessary services."""
@@ -112,11 +94,14 @@ class DarcyBot:
             await bus.stop()
 
 
-main_darcy_bot: DarcyBot = DarcyBot()
+main_darcy_bot: ScrumMasterBot = ScrumMasterBot()
 
 
 async def main() -> None:
     """Main entry point for the bot."""
+    main_darcy_bot.create_session(
+        "123", "1389598040037396610", ScrumMasterEngine("123", "123")
+    )
     await main_darcy_bot.start()
 
 

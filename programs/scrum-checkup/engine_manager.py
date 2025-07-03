@@ -17,7 +17,7 @@ import os
 
 # as these files are not installed as packages with uv we need to go to the parent directory
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -25,21 +25,13 @@ from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import CommandResult
 from llmgine.llm import SessionID
 
-from darcy.notion_crud_engine_v3 import (
-    NotionCRUDEngineConfirmationCommand,
-    NotionCRUDEnginePromptCommand,
-    NotionCRUDEngineStatusEvent,
-    NotionCRUDEngineV3,
+from scrum_engine import (
+    ScrumMasterCommand,
+    ScrumMasterEngineStatusEvent,
+    ScrumMasterConfirmEndConversationCommand,
+    ScrumMasterEngineToolResultEvent,
 )
-from tools.general.functions import store_fact
-from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
-from tools.notion.notion import (
-    create_task,
-    get_active_projects,
-    get_active_tasks,
-    get_all_users,
-    update_task,
-)
+
 
 from config import DiscordBotConfig
 from session_manager import SessionManager, SessionStatus
@@ -52,7 +44,7 @@ class EngineManager:
         self.bus: MessageBus = MessageBus()
 
     async def handle_confirmation_command(
-        self, command: NotionCRUDEngineConfirmationCommand
+        self, command: ScrumMasterConfirmEndConversationCommand
     ) -> CommandResult:
         """Handle confirmation commands from the engine."""
         if command.session_id is None:
@@ -66,7 +58,7 @@ class EngineManager:
         )
         return CommandResult(success=True, result=response)
 
-    async def handle_status_event(self, event: NotionCRUDEngineStatusEvent) -> None:
+    async def handle_status_event(self, event: ScrumMasterEngineStatusEvent) -> None:
         """Handle status events from the engine."""
         if event.session_id is None:
             print("Error: Session ID missing in status event.")
@@ -77,32 +69,18 @@ class EngineManager:
         )
 
     async def use_engine(
-        self, command: NotionCRUDEnginePromptCommand, session_id: str
+        self, command: ScrumMasterCommand, session_id: str
     ) -> CommandResult:
         """Create and configure a new engine for this command."""
         async with self.bus.create_session(id_input=session_id) as _:
             # Create a new engine for this command
-            engine = NotionCRUDEngineV3(
+            engine = ScrumMasterEngine(
                 session_id=session_id,
                 system_prompt=self._get_system_prompt(),
             )
-            await engine.register_tools(
-                function_list=[
-                    get_active_tasks,
-                    get_active_projects,
-                    create_task,
-                    update_task,
-                    get_all_users,
-                    send_email,
-                    read_emails,
-                    reply_to_email,
-                    store_fact,
-                ]
-            )
-
             # Register handlers
             self.bus.register_command_handler(
-                NotionCRUDEngineConfirmationCommand,
+                ScrumMasterConfirmEndConversationCommand,
                 self.handle_confirmation_command,
                 session_id=session_id,
             )
