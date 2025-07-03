@@ -2,11 +2,11 @@ from dataclasses import dataclass
 from llmgine.messages import Command, CommandResult
 from llmgine.messages import Event
 from llmgine.llm.providers.openai_provider import OpenAIProvider
-from llmgine.llm.providers.providers import Providers
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.tools.toolCall import ToolCall
+from scrum_update_engine import useScrumUpdateEngine
 
 import asyncio
 import uuid
@@ -133,7 +133,7 @@ class ScrumMasterEngine:
                     )
                     result = await self.bus.execute(
                         ScrumMasterConfirmEndConversationCommand(
-                            prompt="Stella would like to end the converstion.",
+                            prompt="Stella would like to end the conversation.",
                             session_id=self.session_id,
                         )
                     )
@@ -149,6 +149,9 @@ class ScrumMasterEngine:
                                 result="The user has confirmed to end the conversation.",
                             )
                         )
+
+                        # Activate the post conversation scrum update
+                        await useScrumUpdateEngine(self.session_id, "test")
                     else:
                         self.context_manager.store_tool_call_result(
                             tool_call_id=tool_call_obj.id,
@@ -191,7 +194,10 @@ async def main():
     await app.bootstrap()
     cli = EngineCLI("test")
     engine = ScrumMasterEngine(
-        system_prompt="You are a helpful assistant.", session_id="test"
+        system_prompt=f"""You are a scrum master. You are responsible for managing the scrum process. After the user has finished their checkup, if you believe the user will want to end the conversation, 
+        you will call the request_end_conversation tool.
+        """,
+        session_id="test",
     )
     await engine.tool_manager.register_tool(request_end_conversation)
     cli.register_engine(engine)
