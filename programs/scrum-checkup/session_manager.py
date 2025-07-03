@@ -15,17 +15,18 @@ from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
 import uuid
+from typing import NewType
 
 import discord
 from discord.ext import commands
 from llmgine.llm import SessionID
 
-from types import DiscordChannelID
 from scrum_engine import ScrumMasterEngine
 from components import YesNoView
 
+DiscordChannelID = NewType("DiscordChannelID", str)
 
-class CheckupSessionManager:
+class SessionManager:
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.active_checkups: dict[
@@ -38,3 +39,9 @@ class CheckupSessionManager:
         session_id = SessionID(str(uuid.uuid4()))
 
         return session_id
+
+class SessionStatus(Enum):
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
