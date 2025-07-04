@@ -310,11 +310,12 @@ if __name__ == "__main__":
     from pprint import pprint
 
     start_time = time.time()
-    tasks = get_active_tasks()
-    pprint(tasks)
+    # tasks = get_active_tasks()
+    # pprint(tasks)
+    pprint(get_all_users())
     end_time = time.time()
     print(f"Time taken: {end_time - start_time} seconds")
-
+    
     # start_time = time.time()
     # projects = get_active_projects()
     # pprint(projects)
