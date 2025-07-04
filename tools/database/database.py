@@ -274,7 +274,7 @@ def get_latest_personal_checkup(discord_id: str, engine: Engine = None) -> str:
         )
 
 
-def get_checkups_for_discord_id(discord_id: str, as_of: Optional[datetime] = None, engine: Engine = None) -> str:
+def get_checkups_for_discord_id(discord_id: str, engine: Engine = None, as_of: Optional[datetime] = None) -> str:
     """
     Fetch all checkups for a discord_id, or as of a particular datetime if provided.
     Returns a formatted string with the latest personal description and all relevant checkups with their dates.
@@ -321,7 +321,7 @@ def get_checkups_for_discord_id(discord_id: str, as_of: Optional[datetime] = Non
         return "\n".join(formatted)
 
 
-def update_personal_description(discord_id: str, personal_description: str, engine: Engine = None) -> None:
+def set_personal_description(discord_id: str, personal_description: str, engine: Engine = None) -> None:
     """
     Update the personal_description of the latest (active) row for a given discord_id.
     This function does not create a new SCD2 record - it just updates the existing active record.
