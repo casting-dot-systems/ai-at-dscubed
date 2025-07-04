@@ -372,3 +372,74 @@ def set_personal_description(discord_id: str, personal_description: str, engine:
         print(f"   New description: {personal_description}")
 
 
+def get_committee_member_by_notion_id(notion_id: str, engine: Engine = None) -> Optional[dict[str, Any]]:
+    """
+    Retrieve a committee member by their Notion ID.
+    
+    Args:
+        notion_id: The Notion ID of the committee member
+        engine: Optional database engine (uses singleton if not provided)
+    
+    Returns:
+        Dictionary containing member data or None if not found
+    """
+    engine = engine or DatabaseEngine.get_engine()
+    query = text("""
+        SELECT member_id, name, notion_id, discord_id, discord_dm_channel_id, ingestion_timestamp
+        FROM silver.committee
+        WHERE notion_id = :notion_id
+        LIMIT 1
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"notion_id": notion_id})
+        member = result.mappings().first()
+        return dict(member) if member else None
+
+
+def get_committee_member_by_discord_id(discord_id: str, engine: Engine = None) -> Optional[dict[str, Any]]:
+    """
+    Retrieve a committee member by their Discord ID.
+    
+    Args:
+        discord_id: The Discord ID of the committee member
+        engine: Optional database engine (uses singleton if not provided)
+    
+    Returns:
+        Dictionary containing member data or None if not found
+    """
+    engine = engine or DatabaseEngine.get_engine()
+    query = text("""
+        SELECT member_id, name, notion_id, discord_id, discord_dm_channel_id, ingestion_timestamp
+        FROM silver.committee
+        WHERE discord_id = :discord_id
+        LIMIT 1
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"discord_id": discord_id})
+        member = result.mappings().first()
+        return dict(member) if member else None
+
+
+def get_committee_member_by_discord_dm_channel_id(discord_dm_channel_id: int, engine: Engine = None) -> Optional[dict[str, Any]]:
+    """
+    Retrieve a committee member by their Discord DM channel ID.
+    
+    Args:
+        discord_dm_channel_id: The Discord DM channel ID of the committee member
+        engine: Optional database engine (uses singleton if not provided)
+    
+    Returns:
+        Dictionary containing member data or None if not found
+    """
+    engine = engine or DatabaseEngine.get_engine()
+    query = text("""
+        SELECT member_id, name, notion_id, discord_id, discord_dm_channel_id, ingestion_timestamp
+        FROM silver.committee
+        WHERE discord_dm_channel_id = :discord_dm_channel_id
+        LIMIT 1
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"discord_dm_channel_id": discord_dm_channel_id})
+        member = result.mappings().first()
+        return dict(member) if member else None
+
