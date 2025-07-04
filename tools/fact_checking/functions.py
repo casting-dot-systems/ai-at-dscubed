@@ -2,7 +2,7 @@ from typing import List
 
 from llmgine.bus.bus import MessageBus
 from llmgine.ui.cli.components import SelectPromptCommand
-from tools.database.database import Database
+from tools.database.database import DatabaseEngine, set_user_fact, get_user_fact, delete_fact
 
 def create_fact(discord_id: str, fact: str) -> str:
     """This function creates a fact in the database.
@@ -15,8 +15,8 @@ def create_fact(discord_id: str, fact: str) -> str:
         A message indicating that the fact was created or an error message
     """
     try:
-        db = Database()
-        db.set_user_fact(discord_id, fact)
+        db = DatabaseEngine.get_engine()
+        set_user_fact(discord_id, fact, db)
         return f"Created fact: {fact}"
     except Exception as e:
         return f"Error creating fact: {e}"
@@ -33,8 +33,8 @@ def delete_facts(discord_id: str, fact_id: str) -> str:
         A message indicating that the facts were deleted
     """
     try:
-        db = Database()
-        db.delete_fact(discord_id, fact_id)
+        db = DatabaseEngine.get_engine()
+        delete_fact(discord_id, fact_id, db)
         return f"Deleted fact with ID: {fact_id}"
     except Exception as e:
         return f"Error deleting facts: {e}"
@@ -50,8 +50,8 @@ def get_all_facts(discord_id: str) -> str:
         A message indicating that the fact was retrieved
     """
 
-    db = Database()
-    facts = db.get_user_fact(discord_id)
+    db = DatabaseEngine.get_engine()
+    facts = get_user_fact(discord_id, db)
 
     parsed_facts = []
     for fact in facts:
