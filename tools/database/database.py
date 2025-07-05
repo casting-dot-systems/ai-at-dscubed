@@ -87,7 +87,7 @@ def get_user_facts_with_keywords(
         SELECT f.*
         FROM gold.all_facts f
         JOIN gold.users_base u ON f.user_name = u.name
-        WHERE u.discord_id = :discord_id AND f.fact_text ILIKE ANY(:keywords)
+        WHERE u.discord_id = :discord_id AND f.fact_text LIKE ANY(:keywords)
         ORDER BY f.created_at DESC
     """)
     with engine.connect() as conn:
