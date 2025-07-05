@@ -28,6 +28,7 @@ from scrum_engine import (
     ScrumMasterEngineToolResultEvent,
 )
 
+from datetime import datetime
 from components import YesNoView
 from program_types import SessionContext, DiscordChannelID
 
@@ -55,14 +56,28 @@ class ScrumMasterBot:
         self.bot.event(self.on_message)
 
     async def create_session(
-        self, session_id: str, channel_id: str, engine: ScrumMasterEngine
+        self,
+        session_id: str,
+        channel_id: str,
+        engine: ScrumMasterEngine,
+        user_discord_id: str,
     ) -> None:
-        self.channel_register[channel_id] = (session_id, engine, {})
+        self.channel_register[channel_id] = (session_id, engine, SessionContext({}))
         await engine.tool_manager.register_tool(request_end_conversation)
         MessageBus().register_command_handler(
             ScrumMasterConfirmEndConversationCommand,
             self.handle_end_conversation,
             session_id=session_id,
+        )
+        print("hello from here")
+        init_message = await engine.handle_command(
+            ScrumMasterCommand(prompt="Start the process", session_id=session_id)
+        )
+        print(f"init_message: {init_message}")
+        channel = self.bot.get_channel(int(channel_id))
+        await channel.send(
+            f"# Scrum Checkup <@{user_discord_id}>\n\n"
+            + (init_message.result if init_message.result else "")
         )
 
     def end_session(self, channel_id: DiscordChannelID) -> None:
@@ -118,7 +133,7 @@ class ScrumMasterBot:
         view = YesNoView(timeout=60)
         channel = self.bot.get_channel(int(channel_id))
         prompt_msg = await channel.send(
-            content=f"⚠️ Stella would like to end the conversation. Do you agree?",
+            content="⚠️ Stella would like to end the conversation. Do you agree?",
             view=view,
         )
         await view.wait()
@@ -194,15 +209,21 @@ async def main() -> None:
     with open("prompts/scrum_process.md", "r") as f:
         prompt = f.read()
     await bus.start()
-    await main_darcy_bot.create_session(
-        "123",
-        DiscordChannelID("1389598040037396610"),
-        ScrumMasterEngine(
-            prompt,
+
+    async def delayed_create_session():
+        await asyncio.sleep(1)
+        await main_darcy_bot.create_session(
             "123",
             DiscordChannelID("1389598040037396610"),
-        ),
-    )
+            ScrumMasterEngine(
+                prompt,
+                "123",
+                DiscordChannelID("1389598040037396610"),
+            ),
+            "241085495398891521",
+        )
+
+    asyncio.create_task(delayed_create_session())
     await main_darcy_bot.start()
 
 

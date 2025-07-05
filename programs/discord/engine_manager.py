@@ -17,7 +17,7 @@ import os
 
 # as these files are not installed as packages with uv we need to go to the parent directory
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -33,7 +33,7 @@ from darcy.notion_crud_engine_v3 import (
 )
 from tools.general.functions import store_fact
 from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
-from tools.notion.notion import (
+from tools.notion.notion_functions import (
     create_task,
     get_active_projects,
     get_active_tasks,

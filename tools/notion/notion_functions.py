@@ -62,16 +62,18 @@ def get_all_users() -> list[dict[str, Any]]:
     """
     Get all users from the users database
     """
-    notion_client : Client = NotionClient()
+    notion_client: Client = NotionClient()
     response = notion_client.users.list()
 
     user_list: list[Any] = response.get("results", [])
     for user in user_list:
         print(user.get("id"), user.get("name"))
-        user_list.append({
-            "id": user.get("id"),
-            "name": user.get("name"),
-        })  # TODO use userdata?
+        user_list.append(
+            {
+                "id": user.get("id"),
+                "name": user.get("name"),
+            }
+        )  # TODO use userdata?
     return user_list
 
 
@@ -89,7 +91,7 @@ def get_active_tasks(
     Returns:
         A list of tasks
     """
-    notion_client : Client = NotionClient()
+    notion_client: Client = NotionClient()
     # filter by Project AND UserID
     filter_obj = {
         "and": [
@@ -104,15 +106,19 @@ def get_active_tasks(
         ]
     }
     if notion_project_id:
-        filter_obj["and"].append({
-            "property": "Event/Project",
-            "relation": {"contains": notion_project_id},
-        })
+        filter_obj["and"].append(
+            {
+                "property": "Event/Project",
+                "relation": {"contains": notion_project_id},
+            }
+        )
     if notion_user_id:
-        filter_obj["and"].append({
-            "property": "In Charge",
-            "people": {"contains": notion_user_id},
-        })
+        filter_obj["and"].append(
+            {
+                "property": "In Charge",
+                "people": {"contains": notion_user_id},
+            }
+        )
 
     # quering Task database
     response = notion_client.databases.query(
@@ -150,7 +156,9 @@ def get_active_tasks(
 
         # Parse project safely
         project = None
-        relation_prop = properties.get("Event/Project", {}) or properties.get("Event", {})
+        relation_prop = properties.get("Event/Project", {}) or properties.get(
+            "Event", {}
+        )
         relation_list = relation_prop.get("relation", [])
         if relation_list and len(relation_list) > 0:
             project = relation_list[0].get("id")
@@ -160,7 +168,8 @@ def get_active_tasks(
         userID_inCharge_prop = properties.get("In Charge", {})
         userID_inCharge_list = userID_inCharge_prop.get("people", [])
         if userID_inCharge_list and len(userID_inCharge_list) > 0:
-            notion_user_id = userID_inCharge_list[0].get("id")
+            # notion_user_id = userID_inCharge_list[0].get("id")
+            notion_user_id = userID_inCharge_list
 
         parsed_tasks[task.get("id")] = {
             "name": name,
@@ -310,12 +319,12 @@ if __name__ == "__main__":
     from pprint import pprint
 
     start_time = time.time()
-    # tasks = get_active_tasks()
-    # pprint(tasks)
-    pprint(get_all_users())
+    tasks = get_active_tasks(notion_user_id="f746733c-66cc-4cbc-b553-c5d3f03ed240")
+    pprint(tasks)
+    # pprint(get_all_users())
     end_time = time.time()
     print(f"Time taken: {end_time - start_time} seconds")
-    
+
     # start_time = time.time()
     # projects = get_active_projects()
     # pprint(projects)
