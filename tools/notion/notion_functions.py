@@ -8,24 +8,6 @@ from notion_client import Client
 
 load_dotenv()
 
-NOTION_LOOKUP = {
-    "241085495398891521": {
-        "name": "Nathan Luo",
-        "role": "AI Director",
-        "notion_id": "f746733c-66cc-4cbc-b553-c5d3f03ed240",
-    },
-    "373796704450772992": {
-        "name": "Pranav Jayanty",
-        "role": "AI Officer",
-        "notion_id": "c005948c-9115-4a4d-b3c2-78286fa75fdb",
-    },
-    "1195065884713156728": {
-        "name": "Antoine Dulauroy",
-        "role": "AI Officer",
-        "notion_id": "1bbd872b-594c-81f5-bc03-0002a7229ca6",
-    },
-}
-
 NOTION_PRODUCTION_DATABASE_ID_TASKS: str = "ed8ba37a719a47d7a796c2d373c794b9"
 NOTION_PRODUCTION_DATABASE_ID_PROJECTS: str = "918affd4ce0d4b8eb7604d972fd24826"
 
@@ -58,29 +40,31 @@ class NotionClient:
         return cls._instance
 
 
-def get_all_users() -> list[dict[str, Any]]:
+def get_all_users() -> list[dict[str, str]]:
     """
     Get all users from the users database
     """
     notion_client: Client = NotionClient()
-    response = notion_client.users.list()
+    response: Any = notion_client.users.list()
 
-    user_list: list[Any] = response.get("results", [])
-    for user in user_list:
-        print(user.get("id"), user.get("name"))
+    notion_users: list[dict[str, Any]] = response.get("results", [])
+
+    user_list: list[dict[str, str]] = []
+
+    for user in notion_users:
         user_list.append(
             {
-                "id": user.get("id"),
-                "name": user.get("name"),
+                "id": user.get("id", ""),
+                "name": user.get("name", ""),
             }
-        )  # TODO use userdata?
+        )
     return user_list
 
 
 def get_active_tasks(
     notion_user_id: Optional[str] = None,
     notion_project_id: Optional[str] = None,
-) -> dict[str, dict[str, Any]]:
+) -> dict[Any, dict[str, Any]]:
     """
     Get all active tasks from the tasks database with provided filters
 
@@ -121,13 +105,13 @@ def get_active_tasks(
         )
 
     # quering Task database
-    response = notion_client.databases.query(
+    response: Any = notion_client.databases.query(
         database_id=NOTION_PRODUCTION_DATABASE_ID_TASKS,
         filter=filter_obj,  # should database id be notion_project_id?
     )
 
-    tasks = response.get("results", [])
-    parsed_tasks = {}
+    tasks: list[dict[str, Any]] = response.get("results", [])
+    parsed_tasks: dict[Any, dict[str, Any]] = {}
     for task in tasks:
         # Get properties safely
         properties = task.get("properties", {})
@@ -351,7 +335,7 @@ if __name__ == "__main__":
     # end_time = time.time()
     # print(f"Time taken: {end_time - start_time} seconds")
 
-    # start_time = time.time()
-    # pprint(get_all_users())
-    # end_time = time.time()
-    # print(f"Time taken: {end_time - start_time} seconds")
+    start_time = time.time()
+    pprint(get_all_users())
+    end_time = time.time()
+    print(f"Time taken: {end_time - start_time} seconds")
