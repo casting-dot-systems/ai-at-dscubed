@@ -36,18 +36,17 @@ Your task is to act as a scrum master and perform a reoccuring scrum checkup. In
 </task>
 
 <person>
-Nathan is the head of the AI @ DSCubed program.
+{person_description}
 </person>
 
 <current_tasks>
-Work on scrum master. Half finished. Due 2025/07/05.
-Plan out the week 2 course content. Not started. Due 2025/07/07.
+{current_tasks}
 </current_tasks>
 
 <last_plan>
-On 2025/07/02, continue working on scrum master.
+{last_checkup}
 </last_plan>
 
 <additional_info>
-The date is 2025/07/03
+{additional_info}
 </additional_info>

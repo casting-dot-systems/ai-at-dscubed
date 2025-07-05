@@ -11,6 +11,8 @@ The bot is started here.
 
 import asyncio
 import logging
+import threading
+from typing import Optional
 
 import discord
 from discord.ext import commands
@@ -18,6 +20,7 @@ from llmgine.bootstrap import ApplicationBootstrap
 from llmgine.bus.bus import MessageBus
 from llmgine.messages import CommandResult
 
+from program_types import CheckUpEvent
 from scrum_engine import request_end_conversation
 from config import DiscordBotConfig
 from scrum_engine import (
@@ -37,7 +40,22 @@ logging.basicConfig(level=logging.INFO)
 
 
 class ScrumMasterBot:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                # Double-check locking pattern
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self) -> None:
+        # Only initialize once
+        if hasattr(self, "_initialized"):
+            return
+
         # Load configuration
         self.config = DiscordBotConfig.load_from_env()
 
@@ -54,6 +72,17 @@ class ScrumMasterBot:
 
         # Set up event handlers
         self.bot.event(self.on_message)
+        self.bot.event(self.on_ready)
+
+        # Mark as initialized
+        self._initialized = True
+
+    @classmethod
+    def get_instance(cls) -> "ScrumMasterBot":
+        """Get the singleton instance. Preferred method for accessing the singleton."""
+        if cls._instance is None:
+            cls()
+        return cls._instance  # type: ignore
 
     async def create_session(
         self,
@@ -62,26 +91,47 @@ class ScrumMasterBot:
         engine: ScrumMasterEngine,
         user_discord_id: str,
     ) -> None:
-        self.channel_register[channel_id] = (session_id, engine, SessionContext({}))
+        self.channel_register[str(channel_id)] = (
+            session_id,
+            engine,
+            SessionContext({}),
+        )
         await engine.tool_manager.register_tool(request_end_conversation)
         MessageBus().register_command_handler(
             ScrumMasterConfirmEndConversationCommand,
             self.handle_end_conversation,
             session_id=session_id,
         )
-        print("hello from here")
         init_message = await engine.handle_command(
             ScrumMasterCommand(prompt="Start the process", session_id=session_id)
         )
-        print(f"init_message: {init_message}")
         channel = self.bot.get_channel(int(channel_id))
+        if channel is None:
+            raise ValueError(f"Channel {int(channel_id)} not found")
         await channel.send(
             f"# Scrum Checkup <@{user_discord_id}>\n\n"
             + (init_message.result if init_message.result else "")
         )
 
-    def end_session(self, channel_id: DiscordChannelID) -> None:
-        self.channel_register.pop(channel_id)
+    async def end_session(self, channel_id: DiscordChannelID) -> None:
+        print(f"Ending session for channel {channel_id}")
+        conversation = await self.channel_register[str(channel_id)][
+            1
+        ].extract_conversation()[1:]  # remove the system prompt
+        await MessageBus().publish(
+            CheckUpFinishedEvent(
+                discord_channel_id=channel_id, conversation=conversation
+            )
+        )
+        self.channel_register.pop(str(channel_id))
+
+    async def on_ready(self) -> None:
+        """Called when the bot is ready and connected to Discord."""
+        print(f"Bot is ready! Logged in as {self.bot.user}")
+        # Now the bot can access channels
+
+        print(f"\n\nScrumMasterBot instance on_ready: {self.get_instance()}\n\n")
+        await MessageBus().publish(CheckUpEvent(user_discord_id="774065995508744232"))
 
     async def on_message(self, message: discord.Message) -> None:
         """Handle incoming messages."""
@@ -158,7 +208,7 @@ class ScrumMasterBot:
     ) -> CommandResult:
         result = await self.request_end_conversation(command.channel_id)
         if result:
-            self.end_session(command.channel_id)
+            await self.end_session(command.channel_id)
         return CommandResult(
             success=True,
             result=result,
@@ -198,34 +248,3 @@ class LoadingMessageContext:
             except discord.Forbidden:
                 # Bot doesn't have permission to delete
                 pass
-
-
-main_darcy_bot: ScrumMasterBot = ScrumMasterBot()
-
-
-async def main() -> None:
-    """Main entry point for the bot."""
-    bus: MessageBus = MessageBus()
-    with open("prompts/scrum_process.md", "r") as f:
-        prompt = f.read()
-    await bus.start()
-
-    async def delayed_create_session():
-        await asyncio.sleep(1)
-        await main_darcy_bot.create_session(
-            "123",
-            DiscordChannelID("1389598040037396610"),
-            ScrumMasterEngine(
-                prompt,
-                "123",
-                DiscordChannelID("1389598040037396610"),
-            ),
-            "241085495398891521",
-        )
-
-    asyncio.create_task(delayed_create_session())
-    await main_darcy_bot.start()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

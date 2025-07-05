@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any, Dict, List
 from llmgine.messages import Command, CommandResult
 from llmgine.messages import Event
 from llmgine.llm.providers.openai_provider import OpenAIProvider
@@ -75,10 +76,10 @@ class ScrumMasterEngine:
         )
         self.context_manager.set_system_prompt(self.system_prompt)
 
-    # async def setup(self, discord_bot: discord.Client):
-    #     self.bus.register_command_handler(
-    #         ScrumMasterConfirmEndConversationCommand,
-    #     )
+    async def extract_conversation(self) -> List[Dict[str, Any]]:
+        """Extract the conversation from the prompt"""
+        conversation = await self.context_manager.retrieve()
+        return conversation
 
     async def handle_command(self, command: ScrumMasterCommand) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
@@ -160,9 +161,6 @@ class ScrumMasterEngine:
                                 result="The user has confirmed to end the conversation.",
                             )
                         )
-
-                        # Activate the post conversation scrum update
-                        await useScrumUpdateEngine(self.session_id, "test")
                     else:
                         self.context_manager.store_tool_call_result(
                             tool_call_id=tool_call_obj.id,

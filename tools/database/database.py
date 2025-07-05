@@ -292,10 +292,10 @@ def get_latest_personal_checkup(discord_id: str) -> str:
 
 def get_checkups_for_discord_id(
     discord_id: str, as_of: Optional[datetime] = None
-) -> str:
+) -> dict[str, Any]:
     """
     Fetch all checkups for a discord_id, or as of a particular datetime if provided.
-    Returns a formatted string with the latest personal description and all relevant checkups with their dates.
+    Returns a dictionary with the latest personal description and all relevant checkups with their dates.
     """
     engine = DatabaseEngine.get_engine()
     committee_query = text("""
@@ -308,7 +308,7 @@ def get_checkups_for_discord_id(
         committee_result = conn.execute(committee_query, {"discord_id": discord_id})
         committee = committee_result.fetchone()
         if not committee:
-            return f"No committee member found for discord_id {discord_id}."
+            return {"error": f"No committee member found for discord_id {discord_id}."}
         member_id = committee.member_id
         committee_name = committee.name
         if as_of:
@@ -330,15 +330,17 @@ def get_checkups_for_discord_id(
             """)
             checkups = conn.execute(checkup_query, {"member_id": member_id}).fetchall()
         if not checkups:
-            return f"No checkup records found for committee member '{committee_name}'."
+            return {
+                "committee_member": committee_name,
+                "personal_description": "(No personal description)",
+                "checkups": [],
+                "last_checkup": "(No checkup records found)",
+            }
         # Use the latest personal description (from the first record since we ordered DESC)
         latest_personal_desc = (
             checkups[0].personal_description or "(No personal description)"
         )
-        formatted = [
-            f"Committee Member: {committee_name}",
-            f"Latest Personal Description: {latest_personal_desc}",
-        ]
+        checkup_list = []
         for checkup in checkups:
             date_str = (
                 checkup.start_date.strftime("%Y-%m-%d")
@@ -346,8 +348,51 @@ def get_checkups_for_discord_id(
                 else "(No date)"
             )
             checkup_text = checkup.checkup_text or "(No checkup text)"
-            formatted.append(f"[{date_str}] {checkup_text}")
-        return "\n".join(formatted)
+            checkup_list.append({"date": date_str, "text": checkup_text})
+
+        return {
+            "committee_member": committee_name,
+            "personal_description": latest_personal_desc,
+            "checkups": checkup_list,
+            "last_checkup": checkup_list[0]["text"]
+            if checkup_list
+            else "(No checkup records found)",
+        }
+
+
+def get_current_personal_description(discord_id: str) -> str:
+    """
+    Fetch the current personal description for a given discord_id.
+    Returns the personal description from the most recent checkup record.
+    """
+    engine = DatabaseEngine.get_engine()
+    committee_query = text("""
+        SELECT member_id, name
+        FROM silver.committee
+        WHERE discord_id = :discord_id
+        LIMIT 1
+    """)
+    with engine.connect() as conn:
+        committee_result = conn.execute(committee_query, {"discord_id": discord_id})
+        committee = committee_result.fetchone()
+        if not committee:
+            return f"No committee member found for discord_id {discord_id}."
+
+        member_id = committee.member_id
+
+        checkup_query = text("""
+            SELECT personal_description
+            FROM silver.committee_personal_checkup
+            WHERE member_id = :member_id
+            ORDER BY is_current DESC, start_date DESC
+            LIMIT 1
+        """)
+        checkup = conn.execute(checkup_query, {"member_id": member_id}).fetchone()
+
+        if not checkup:
+            return "(No personal description available)"
+
+        return checkup.personal_description or "(No personal description)"
 
 
 def set_personal_description(discord_id: str, personal_description: str) -> None:
@@ -473,3 +518,11 @@ def get_committee_member_by_discord_dm_channel_id(
         result = conn.execute(query, {"discord_dm_channel_id": discord_dm_channel_id})
         member = result.mappings().first()
         return dict(member) if member else None
+
+
+def main():
+    print(get_committee_member_by_discord_id("241085495398891521"))
+
+
+if __name__ == "__main__":
+    main()
