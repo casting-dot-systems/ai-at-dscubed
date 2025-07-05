@@ -6,7 +6,8 @@ from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.tools.toolCall import ToolCall
-from scrum_update_engine import useScrumUpdateEngine
+from llmgine.llm import SessionID
+from program_types import DiscordChannelID
 
 import asyncio
 import uuid
@@ -35,6 +36,7 @@ class ScrumMasterConfirmEndConversationCommand(Command):
     """Command to confirm the end of the conversation"""
 
     prompt: str = ""
+    channel_id: DiscordChannelID = DiscordChannelID("")
 
 
 @dataclass
@@ -51,12 +53,15 @@ def request_end_conversation():
 
 
 class ScrumMasterEngine:
-    def __init__(self, system_prompt: str, session_id: str):
+    def __init__(
+        self, system_prompt: str, session_id: SessionID, channel_id: DiscordChannelID
+    ):
         """Get all the context"""
         self.bus = MessageBus()
         self.session_id = session_id
-        self.engine_id = str(uuid.uuid4())
+        self.channel_id = channel_id
         self.system_prompt = system_prompt
+        self.engine_id = str(uuid.uuid4())
         self.model = OpenAIProvider(
             model="gpt-4.1", api_key=os.getenv("OPENAI_API_KEY")
         )
@@ -69,6 +74,11 @@ class ScrumMasterEngine:
             llm_model_name="openai",
         )
         self.context_manager.set_system_prompt(self.system_prompt)
+
+    # async def setup(self, discord_bot: discord.Client):
+    #     self.bus.register_command_handler(
+    #         ScrumMasterConfirmEndConversationCommand,
+    #     )
 
     async def handle_command(self, command: ScrumMasterCommand) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
@@ -133,7 +143,8 @@ class ScrumMasterEngine:
                     )
                     result = await self.bus.execute(
                         ScrumMasterConfirmEndConversationCommand(
-                            prompt="Stella would like to end the conversation.",
+                            prompt="Stella would like to end the converstion.",
+                            channel_id=self.channel_id,
                             session_id=self.session_id,
                         )
                     )
@@ -166,7 +177,7 @@ class ScrumMasterEngine:
                         )
         except Exception as e:
             print(e)
-            await self.message_bus.publish(
+            await self.bus.publish(
                 ScrumMasterEngineStatusEvent(
                     status="finished",
                     session_id=self.session_id,

@@ -21,10 +21,12 @@ import discord
 from discord.ext import commands
 from llmgine.llm import SessionID
 
+from program_types import DiscordChannelID
 from scrum_engine import ScrumMasterEngine
 from components import YesNoView
 
 DiscordChannelID = NewType("DiscordChannelID", str)
+
 
 class SessionManager:
     def __init__(self, bot: commands.Bot):
@@ -39,6 +41,7 @@ class SessionManager:
         session_id = SessionID(str(uuid.uuid4()))
 
         return session_id
+
 
 class SessionStatus(Enum):
     PROCESSING = "processing"
