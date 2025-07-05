@@ -22,7 +22,7 @@ class VoiceRecord(discord.VoiceClient):
         super().__init__(bot, channel)
         self.user_audio_files = {}
 
-    async def packets_handler(self, packet):
+    async def on_voice_packet(self, packet):
         user_id = packet.user_id
         data = packet.decrypted_data
         
