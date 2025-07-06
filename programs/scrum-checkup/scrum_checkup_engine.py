@@ -8,7 +8,7 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.tools.toolCall import ToolCall
 from llmgine.llm import SessionID
-from program_types import DiscordChannelID
+from scrum_checkup_types import DiscordChannelID
 
 import asyncio
 import uuid
