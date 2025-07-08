@@ -1,4 +1,4 @@
-from tools.notion.notion_functions import get_active_tasks, get_active_projects
+from custom_tools.notion.notion_functions import get_active_tasks, get_active_projects
 
 """
 INPUT: notion_user_id

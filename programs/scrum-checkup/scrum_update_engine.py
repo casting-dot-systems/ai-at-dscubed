@@ -14,7 +14,7 @@ from llmgine.llm.providers.response import LLMResponse
 from custom_types.discord import DiscordChannelID, DiscordUserID
 from custom_types.notion import NotionUserID
 from scrum_checkup_types import CheckUpEventContext
-from tools.database.database import set_committee_personal_checkup
+from custom_tools.database.database import set_committee_personal_checkup
 
 import asyncio
 import uuid

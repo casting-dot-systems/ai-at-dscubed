@@ -196,8 +196,8 @@ async def main():
         YesNoPrompt,
     )
 
-    from tools.general.functions import store_fact
-    from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
+    from custom_tools.general.functions import store_fact
+    from custom_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
 
     app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
     await app.bootstrap()

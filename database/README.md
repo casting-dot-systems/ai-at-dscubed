@@ -10,4 +10,4 @@ Bronze is a data pipeline framework that handles raw data ingestion and staging 
 Silver contains cleaned and validated data with proper relationships and constraints. Includes fact data, committee member data and personal checkup history using SCD2 patterns.
 
 ## Gold Layer
-Gold contains business-ready aggregated data optimized for specific tools.
+Gold contains business-ready aggregated data optimized for specific custom_tools.

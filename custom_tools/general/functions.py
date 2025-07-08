@@ -1,6 +1,11 @@
 from typing import Any, Optional
 
-from tools.database.database import DatabaseEngine, set_user_fact, get_user_fact, get_user
+from custom_tools.database.database import (
+    DatabaseEngine,
+    set_user_fact,
+    get_user_fact,
+    get_user,
+)
 
 # TODO maybe fact type
 
@@ -23,8 +28,7 @@ def store_fact(discord_id: str, fact: str) -> str:
         discord_id: The Discord ID of the user to store the fact for.
         fact: The fact to store.
     """
-    db = DatabaseEngine.get_engine()
-    set_user_fact(discord_id, fact, db)
+    set_user_fact(discord_id, fact)
     print(f"Stored fact for {discord_id}: {fact}")
     return f"Stored fact for {discord_id}: {fact}"
 
@@ -37,8 +41,7 @@ def get_all_facts(discord_id: str) -> str:
     Returns:
         A string containing all facts about the user.
     """
-    db = DatabaseEngine.get_engine()
-    facts: list[dict[str, Any]] = get_user_fact(discord_id, db)
+    facts: list[dict[str, Any]] = get_user_fact(discord_id)
     return str(facts)
 
 
@@ -50,6 +53,5 @@ def get_user_info(discord_id: str) -> str:
     Returns:
         A string containing all information about the user.
     """
-    db = DatabaseEngine.get_engine()
-    user_info: Optional[dict[str, Any]] = get_user(discord_id, db)
+    user_info: Optional[dict[str, Any]] = get_user(discord_id)
     return str(user_info)
