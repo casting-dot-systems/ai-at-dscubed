@@ -9,16 +9,16 @@ Components include:
 The bot is started here.
 """
 
-import asyncio
 import logging
 import threading
-from typing import Optional
+from datetime import datetime
 
 import discord
 from discord.ext import commands
 from llmgine.bootstrap import ApplicationBootstrap
 from llmgine.bus.bus import MessageBus
 from llmgine.messages import CommandResult
+from custom_types.discord import DiscordChannelID
 
 from scrum_checkup_types import CheckUpEvent, CheckUpEventContext, CheckUpFinishedEvent
 from scrum_checkup_engine import request_end_conversation
@@ -26,14 +26,10 @@ from config import DiscordBotConfig
 from scrum_checkup_engine import (
     ScrumMasterEngine,
     ScrumMasterCommand,
-    ScrumMasterEngineStatusEvent,
     ScrumMasterConfirmEndConversationCommand,
-    ScrumMasterEngineToolResultEvent,
 )
-
-from datetime import datetime, timedelta
 from components import YesNoView
-from custom_types.discord import DiscordChannelID
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -86,7 +82,7 @@ class ScrumMasterBot:
         @self.bot.tree.command(
             name="scrum-checkup", description="Start a scrum checkup for a user"
         )
-        async def scrum_checkup(interaction: discord.Interaction, user: discord.Member):
+        async def scrum_checkup(interaction: discord.Interaction, user: discord.Member): # type: ignore
             """Slash command to trigger a scrum checkup for a specified user."""
             try:
                 # Publish the CheckUpEvent
@@ -128,7 +124,7 @@ class ScrumMasterBot:
         await engine.tool_manager.register_tool(request_end_conversation)
         MessageBus().register_command_handler(
             ScrumMasterConfirmEndConversationCommand,
-            self.handle_end_conversation,
+            self.handle_end_conversation, # type: ignore
             session_id=checkup_context.session_id,
         )
         init_message = await engine.handle_command(
@@ -141,7 +137,7 @@ class ScrumMasterBot:
             raise ValueError(
                 f"Channel {int(checkup_context.checkup_channel_id)} not found"
             )
-        await channel.send(
+        await channel.send( # type: ignore
             f"# Scrum Checkup <@{checkup_context.discord_id}>\n\n"
             + (init_message.result if init_message.result else "")
         )
@@ -149,7 +145,7 @@ class ScrumMasterBot:
     async def end_session(self, channel_id: DiscordChannelID) -> None:
         print(f"Ending session for channel {channel_id}")
         conversation = await self.channel_register[channel_id][0].extract_conversation()
-        self.channel_register[channel_id][1].conversation = conversation
+        self.channel_register[channel_id][1].conversation = conversation # type: ignore
         await MessageBus().publish(
             CheckUpFinishedEvent(checkup_context=self.channel_register[channel_id][1])
         )
@@ -167,13 +163,13 @@ class ScrumMasterBot:
         except Exception as e:
             print(f"Failed to sync commands: {e}")
 
-        print(f"\n\nScrumMasterBot instance on_ready: {self.get_instance()}\n\n")
-        await MessageBus().publish(
-            CheckUpEvent(
-                user_discord_id="241085495398891521",
-                scheduled_time=datetime.now() + timedelta(seconds=10),
-            )
-        )
+        # print(f"\n\nScrumMasterBot instance on_ready: {self.get_instance()}\n\n")
+        # await MessageBus().publish(
+        #     CheckUpEvent(
+        #         user_discord_id="774065995508744232",
+        #         scheduled_time=datetime.now() + timedelta(seconds=10),
+        #     )
+        # )
 
     async def on_message(self, message: discord.Message) -> None:
         """Handle incoming messages."""
@@ -224,7 +220,7 @@ class ScrumMasterBot:
 
         view = YesNoView(timeout=60)
         channel = self.bot.get_channel(int(channel_id))
-        prompt_msg = await channel.send(
+        prompt_msg = await channel.send( # type: ignore
             content="⚠️ Stella would like to end the conversation. Do you agree?",
             view=view,
         )
@@ -233,7 +229,7 @@ class ScrumMasterBot:
         # Process the result
         if view.value is None:
             result = False
-            await prompt_msg.edit(content="⏱️ Request timed out", view=None)
+            await prompt_msg.edit(content="⏱️ Request timed out", view=None) # type: ignore
         else:
             result = view.value
             resp_text = (
@@ -241,9 +237,9 @@ class ScrumMasterBot:
                 if view.value
                 else "❌ End conversation request declined"
             )
-            await prompt_msg.edit(content=f"{resp_text}", view=None)
+            await prompt_msg.edit(content=f"{resp_text}", view=None) # type: ignore
 
-        return result if result is not None else False
+        return result
 
     async def handle_end_conversation(
         self, command: ScrumMasterConfirmEndConversationCommand

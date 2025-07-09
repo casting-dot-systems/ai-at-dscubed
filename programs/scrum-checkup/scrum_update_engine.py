@@ -14,7 +14,6 @@ from llmgine.llm.providers.response import LLMResponse
 from custom_types.discord import DiscordChannelID, DiscordUserID
 from custom_types.notion import NotionUserID
 from scrum_checkup_types import CheckUpEventContext
-from custom_tools.database.database import set_committee_personal_checkup
 
 import asyncio
 import uuid
@@ -108,8 +107,8 @@ class ScrumUpdateEngine:
                         session_id=self.session_id,
                     )
                 )
-                response: LLMResponse = await self.model.generate(
-                    messages=current_context, tools=tools
+                response: LLMResponse = await self.model.generate( # type: ignore
+                    messages=current_context, tools=tools # type: ignore
                 )
 
                 response_message = response.raw.choices[0].message
@@ -208,9 +207,9 @@ async def main():
     await MessageBus().start()
     checkup_context = CheckUpEventContext(
         session_id=SessionID(str(uuid.uuid4())),
-        discord_id=DiscordUserID("241085495398891521"),
-        notion_id=NotionUserID("f746733c-66cc-4cbc-b553-c5d3f03ed240"),
-        checkup_channel_id=DiscordChannelID("1234567890"),
+        discord_id=DiscordUserID("774065995508744232"),
+        notion_id=NotionUserID("1bbd872b-594c-8123-a9c8-0002e6ee833b"),
+        checkup_channel_id=DiscordChannelID("1389101580363632692"),
         personal_description="",
         system_prompt="",
         conversation=LLMConversation(
