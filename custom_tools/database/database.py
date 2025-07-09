@@ -348,7 +348,7 @@ def get_checkups_for_discord_id(
                 else "(No date)"
             )
             checkup_text = checkup.checkup_text or "(No checkup text)"
-            checkup_list.append({"date": date_str, "text": checkup_text})
+            checkup_list.append({"date": date_str, "text": checkup_text}) # type: ignore
 
         return {
             "committee_member": committee_name,

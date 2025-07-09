@@ -13,12 +13,12 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 
-from tools.notion.data import (
+from custom_tools.notion.data import (
     UserData,
     get_user_from_notion_id,
     notion_user_id_type,
 )
-from tools.notion.notion_functions import (
+from custom_tools.notion.notion_functions import (
     create_task,
     get_active_projects,
     get_active_tasks,
@@ -338,8 +338,8 @@ async def main():
         YesNoPrompt,
     )
 
-    from tools.general.functions import store_fact
-    from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
+    from custom_tools.general.functions import store_fact
+    from custom_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
 
     app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
     await app.bootstrap()

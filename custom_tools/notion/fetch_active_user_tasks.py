@@ -1,4 +1,4 @@
-from tools.notion.notion_functions import get_active_tasks, get_active_projects
+from custom_tools.notion.notion_functions import get_active_tasks, get_active_projects
 
 """
 INPUT: notion_user_id
@@ -20,7 +20,7 @@ project dictionary:
 """
 
 
-def get_task_and_project_info(notion_user_id):
+def get_task_and_project_info(notion_user_id: str) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     user_tasks = get_active_tasks(notion_user_id=notion_user_id)
     all_projects = get_active_projects()
 
@@ -38,7 +38,7 @@ def get_task_and_project_info(notion_user_id):
     # formatting to dict, appending to list
     task_list = []
     for task_id, task_data in user_tasks.items():
-        task_list.append(
+        task_list.append( # type: ignore
             {
                 "Task ID": task_id,
                 "Task Name": task_data.get("name", ""),
@@ -50,8 +50,8 @@ def get_task_and_project_info(notion_user_id):
         )
 
     unique_projects = []
-    for project_id, project_name in user_projects.items():
-        unique_projects.append(
+    for project_id, project_name in user_projects.items(): # type: ignore
+        unique_projects.append( # type: ignore
             {
                 "Project ID": project_id,
                 "Project Name": project_name,
@@ -60,9 +60,9 @@ def get_task_and_project_info(notion_user_id):
         )
 
     # return as tuple
-    user_info = (task_list, unique_projects)
+    user_info = (task_list, unique_projects) # type: ignore
 
-    return user_info
+    return user_info # type: ignore
 
 
 # uncomment for local testing
