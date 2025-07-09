@@ -1,6 +1,11 @@
+import asyncio
+import uuid
+import os
+import dotenv
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional
+
 from llmgine.messages import Command, CommandResult
 from llmgine.messages import Event
 from llmgine.llm import LLMConversation
@@ -11,14 +16,14 @@ from llmgine.bus.bus import MessageBus
 from llmgine.llm.tools.toolCall import ToolCall
 from llmgine.llm import SessionID
 from llmgine.llm.providers.response import LLMResponse
+
+from custom_tools.database.database import get_committee_member_by_discord_id
 from custom_types.discord import DiscordChannelID, DiscordUserID
 from custom_types.notion import NotionUserID
+from custom_tools.notion.notion_functions import update_task, update_task_progress
 from scrum_checkup_types import CheckUpEventContext
 
-import asyncio
-import uuid
-import os
-import dotenv
+
 
 dotenv.load_dotenv()
 
@@ -43,24 +48,6 @@ class ScrumUpdateEngineToolResultEvent(Event):
 
     tool_name: str = ""
     result: str = ""
-
-
-def get_next_scrum_time():
-    """Call this function to get the next scrum time"""
-    return "10:00:00"
-
-
-def get_current_date():
-    """Call this function to get the current date"""
-    return "2025-07-03"
-
-
-def update_database(conversation: str):
-    """Call this function to update the database"""
-    print(conversation)
-    # set_committee_personal_checkup(conversation)
-    return "database updated successfully"
-
 
 class ScrumUpdateEngine:
     def __init__(self, system_prompt: str, session_id: str, user_discord_id: str):
@@ -191,13 +178,22 @@ class ScrumUpdateEngine:
 
 
 async def useScrumUpdateEngine(checkup_context: CheckUpEventContext):
+    user_row = get_committee_member_by_discord_id(checkup_context.discord_id)
+    if user_row is None:
+        raise ValueError(f"User with discord_id {checkup_context.discord_id} not found in database")
+    user_name = user_row["name"]
+
     engine = ScrumUpdateEngine(
-        system_prompt=f"""You will be given a conversation between a user and a scrum master. You will then schedule the next scrum time based on the conversation. The current datetime is {datetime.now()}.
+        system_prompt=f"""You will be given a conversation between {user_name} and a scrum master. You will then schedule the next scrum time based on the conversation. The current datetime is {datetime.now()}.
+        For tasks mentioned in the conversation, you will need to update the task status when necessary. ie. if the user says "I have finished task 1", you will need to update the task status to "Done".
+        For every task mentioned in the conversation, you will need to update the task progress using the update_task_progress tool.
         """,
         session_id=SessionID(str(uuid.uuid4())),
         user_discord_id=checkup_context.discord_id,
     )
     await engine.tool_manager.register_tool(engine.schedule_next_scrum)
+    await engine.tool_manager.register_tool(update_task)
+    await engine.tool_manager.register_tool(update_task_progress)
     await engine.handle_command(
         ScrumUpdateCommand(prompt=str(checkup_context.conversation))
     )
@@ -217,68 +213,6 @@ async def main():
         ),
     )
     await useScrumUpdateEngine(checkup_context)
-
-
-# async def main(useEngine: bool = False):
-#     from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
-#     from llmgine.ui.cli.cli import EngineCLI
-#     from llmgine.ui.cli.components import (
-#         EngineResultComponent,
-#         ToolComponentShort,
-#     )
-
-#     engine = ScrumUpdateEngine(
-#         system_prompt=f"""You are a scrum master. You are responsible for managing the post daily scrum process.
-#         The user has provided their plan on what they would do with their current tasks. You should summarize their plan and
-#         update the database. Also, schedule the next daily scrum based on the user's plan.
-
-#         If the user does not mention about the next scrum time, you should fetch the next scrum time from the database using the get_next_scrum_time tool for the time, and the
-#         next scrum date will be tomorrow.
-
-#         Here is a structured plan example for updating the database:
-
-#         Date: YYYY-MM-DD
-#             Will complete Task XXXXX by YYYY-MM-DD
-#             Will complete Task XXXXX by YYYY-MM-DD
-#             ...
-
-#         ie.
-#         Date: 2025-07-03
-#             Will complete Task "Create Engine" by 2025-07-04
-#             Will complete Task "Research MCP" by 2025-07-05
-#             Will complete Task "Brainstorm schema" by 2025-07-10
-
-#         """,
-#         session_id="test",
-#     )
-#     await engine.tool_manager.register_tool(update_database)
-#     await engine.tool_manager.register_tool(get_next_scrum_time)
-#     await engine.tool_manager.register_tool(get_current_date)
-
-#     if useEngine:
-#         await engine.handle_command(
-#             ScrumUpdateCommand(
-#                 prompt=f"""You're current tasks are:
-#             - Research MCP
-#             - Complete tool chat bot
-#             - Design DB schema
-
-#             I will try and get the first two finished by tmr. The third task will prob take a bit longer, i'm not sure at this stage."""
-#             )
-#         )
-#     else:
-#         app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
-#         await app.bootstrap()
-#         cli = EngineCLI(SessionID("test"))
-#         cli.register_engine(engine)
-#         cli.register_engine_command(ScrumUpdateCommand, engine.handle_command)
-#         cli.register_engine_result_component(EngineResultComponent)
-#         cli.register_loading_event(ScrumUpdateEngineStatusEvent)
-#         cli.register_component_event(
-#             ScrumUpdateEngineToolResultEvent, ToolComponentShort
-#         )
-#         await cli.main()
-
 
 if __name__ == "__main__":
     asyncio.run(main())

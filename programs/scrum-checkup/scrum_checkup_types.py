@@ -22,10 +22,11 @@ Here is the flow of the process:
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any, Dict, override
 from uuid import uuid4
 import asyncio
 
-from llmgine.messages.events import ScheduledEvent, Event
+from llmgine.messages import ScheduledEvent, Event, register_scheduled_event_class
 from llmgine.llm import SessionID, LLMConversation
 from llmgine.prompts.prompts import get_prompt
 
@@ -55,13 +56,35 @@ class CheckUpEventContext:
     # tasks: List[Dict[str, Any]] = []
     # projects: List[Dict[str, Any]] = []
 
-
 @dataclass
 class CheckUpEvent(ScheduledEvent):
     """Event to check up on the user"""
 
     user_discord_id: str = ""
 
+    @override
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the event to a dictionary.
+        """
+        return {
+            "event_id": self.event_id,
+            "timestamp": self.timestamp,
+            "metadata": self.metadata,
+            "session_id": self.session_id,
+            "scheduled_time": self.scheduled_time.isoformat(),
+            "user_discord_id": self.user_discord_id
+        }
+    
+    @classmethod
+    def from_dict(cls, event_dict: Dict[str, Any]) -> "CheckUpEvent":
+        """
+        Create a CheckUpEvent from a dictionary.
+        """
+        if "scheduled_time" in event_dict:
+            event_dict["scheduled_time"] = datetime.fromisoformat(event_dict["scheduled_time"])
+        return cls(**event_dict)
+register_scheduled_event_class(CheckUpEvent)
 
 @dataclass
 class CheckUpFinishedEvent(Event):

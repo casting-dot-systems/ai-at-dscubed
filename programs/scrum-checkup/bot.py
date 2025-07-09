@@ -11,7 +11,7 @@ The bot is started here.
 
 import logging
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
