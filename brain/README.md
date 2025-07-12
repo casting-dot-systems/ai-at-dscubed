@@ -1,3 +1,3 @@
 # Brain
 
-![Brain](brain.excalidraw.png)
+![Brain](brain.png)
