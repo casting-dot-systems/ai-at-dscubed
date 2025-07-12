@@ -13,12 +13,12 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 
-from custom_tools.notion.data import (
+from custom_tools.brain.notion.data import (
     UserData,
     get_user_from_notion_id,
     notion_user_id_type,
 )
-from custom_tools.notion.notion_functions import (
+from custom_tools.brain.notion.notion_functions import (
     create_task,
     get_active_projects,
     get_active_tasks,

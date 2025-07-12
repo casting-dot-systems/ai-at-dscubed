@@ -17,10 +17,10 @@ from llmgine.llm.tools.toolCall import ToolCall
 from llmgine.llm import SessionID
 from llmgine.llm.providers.response import LLMResponse
 
-from custom_tools.database.database import get_committee_member_by_discord_id
+from custom_tools.brain.postgres.database import get_committee_member_by_discord_id
 from custom_types.discord import DiscordChannelID, DiscordUserID
 from custom_types.notion import NotionUserID
-from custom_tools.notion.notion_functions import update_task, update_task_progress
+from custom_tools.brain.notion.notion_functions import update_task, update_task_progress
 from scrum_checkup_types import CheckUpEventContext
 
 

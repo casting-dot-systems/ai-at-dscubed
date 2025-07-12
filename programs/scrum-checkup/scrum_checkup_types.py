@@ -32,12 +32,12 @@ from llmgine.prompts.prompts import get_prompt
 
 from custom_types.discord import DiscordChannelID, DiscordUserID
 from custom_types.notion import NotionUserID
-from custom_tools.database.database import (
+from custom_tools.brain.postgres.database import (
     get_committee_member_by_discord_id,
     get_checkups_for_discord_id,
     set_committee_personal_checkup
 )
-from custom_tools.notion.fetch_active_user_tasks import get_task_and_project_info
+from custom_tools.brain.notion.fetch_active_user_tasks import get_task_and_project_info
 
 
 
