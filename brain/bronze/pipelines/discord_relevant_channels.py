@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from brain.bronze.src.extractor.discord_extractor import DiscordExtractor
 from brain.bronze.src.utils.pipeline import Pipeline, get_ddl_path
 
-
+# TODO: integrate run_pipeline function from pipeline.py
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Discord data pipeline')

@@ -39,6 +39,7 @@ class DiscordExtractor:
         return Client(intents=self.intents)
     
     # Extract
+    # TODO: find a way to ensure dataframe aligns with the ddl automatically, no need to manually add columns
     async def fetch_discord_channels(self) -> List[Dict[str, Any]]:
         """Fetch all text channels and return as list of dictionaries."""
         client = self.create_client()
