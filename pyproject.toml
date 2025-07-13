@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "llmgine @ {root:parent:uri}/llmgine",
     "notion>=0.0.28",
+    "psycopg2-binary>=2.9.10",
 ]
 
 [build-system]

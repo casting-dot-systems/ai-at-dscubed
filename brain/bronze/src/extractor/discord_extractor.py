@@ -28,7 +28,6 @@ class DiscordExtractor:
         if not self.token or not self.guild_id:
             raise ValueError("BOT_KEY and TEST_SERVER_ID must be set in .env file")
         
-
         # Configure intents
         self.intents = Intents.default()
         self.intents.message_content = True

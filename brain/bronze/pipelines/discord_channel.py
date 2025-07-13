@@ -2,8 +2,8 @@ import argparse
 import os
 import asyncio
 from dotenv import load_dotenv
-from bronze.src.extractor.discord_extractor import DiscordExtractor
-from bronze.src.utils.pipeline import Pipeline, get_ddl_path
+from brain.bronze.src.extractor.discord_extractor import DiscordExtractor
+from brain.bronze.src.utils.pipeline import Pipeline, get_ddl_path
 import sqlalchemy as sa
 
 
@@ -15,11 +15,11 @@ def main():
     
     # Load environment variables
     load_dotenv()
-    DARCY_KEY = os.getenv('DARCY_KEY') # Basically an authorised discord client
-    TEST_SERVER_ID = os.getenv('TEST_SERVER_ID') # The server id of the AI server
+    BOT_KEY = os.getenv('BOT_KEY')
+    TEST_SERVER_ID = os.getenv('TEST_SERVER_ID')
 
-    if not DARCY_KEY or not TEST_SERVER_ID:
-        raise ValueError("DARCY_KEY and TEST_SERVER_ID must be set in .env file")
+    if not BOT_KEY or not TEST_SERVER_ID:
+        raise ValueError("BOT_KEY and TEST_SERVER_ID must be set in .env file")
     
     # DISCORD CHANNELS --------------------------------------------------------------------- */
     discord_channels_extractor = DiscordExtractor()
