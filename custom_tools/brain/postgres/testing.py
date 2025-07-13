@@ -1,7 +1,7 @@
 # test database tool
 import os
 from dotenv import load_dotenv
-from database import (DatabaseEngine,
+from postgres import (DatabaseEngine,
                       set_initial_committee_personal_checkup,
                       get_latest_personal_checkup,
                       get_checkups_for_discord_id,

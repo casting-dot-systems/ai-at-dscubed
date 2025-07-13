@@ -24,37 +24,45 @@ from llmgine.llm.models.openai_models import Gpt41Mini
 from llmgine.llm.providers.providers import Providers
 from llmgine.llm.context.memory import SimpleChatHistory
 from llmgine.llm.tools import ToolCall
-from llmgine.ui.cli.components import  SelectPromptCommand, SelectPrompt
-from tools.fact_checking.functions import create_fact, send_to_judge, deletion_confirmation, get_all_facts
+from llmgine.ui.cli.components import SelectPromptCommand, SelectPrompt
+from custom_tools.fact_checking.functions import (
+    create_fact,
+    send_to_judge,
+    deletion_confirmation,
+    get_all_facts,
+)
 
-CREATE_FACT_TOKEN =  "<CREATE_FACT>"
+CREATE_FACT_TOKEN = "<CREATE_FACT>"
 DELETE_FACT_TOKEN = "<DELETE_FACT>"
 
-SYSTEM_PROMPT = f'You are a fact processing engine. You will receive a new fact to create or delete, and you will also receive all facts. '\
-f'Your task:' \
-f'1. Choose the facts that are similar and contradictory to the new fact.'\
-f'2. If requested for creation and there are similar or contradictory facts, call the "send_to_judge" tool.'\
-f'3. If requested for creation and there are no similar or contradictory facts, call the "create_fact" tool.'\
-f'4. If requested for deletion and there are similar or contradictory facts, call "deletion_confirmation" tool.'\
-f'5. If requested for deletion and there are no similar or contradictory facts, say something like "Cannot delete fact because there are no similar or contradictory facts".\n'\
-f'Examples:' \
-f'Example 1:'\
-f'Input: "<CREATE_FACT> I love cheese. All facts: I enjoy eating cheese. I love cheese. I hate cheese."'\
-f'Action: "Tool call: send_to_judge"'\
-f'Example 2:'\
-f'Input: "<CREATE_FACT> I love cheese. All facts: I enjoy eating beef."'\
-f'Action: "Tool call: create_fact"'\
-f'Output: "Created fact: I love cheese."'\
-f'Example 3:'\
-f'Input: "<DELETE_FACT> I love cheese. All facts: I enjoy eating cheese. I love cheese. I hate cheese."'\
-f'Action: "Tool call: deletion_confirmation"'\
-f'Output: "Confirmation: I love cheese."'\
-f'Example 4:'\
-f'Input: "<DELETE_FACT> I love cheese. All facts: I enjoy eating beef."'\
-f'Action: "Tool call: deletion_confirmation"'\
-f'Output: "Cannot delete fact because there are no similar or contradictory facts".\n'\
+SYSTEM_PROMPT = (
+    f"You are a fact processing engine. You will receive a new fact to create or delete, and you will also receive all facts. "
+    f"Your task:"
+    f"1. Choose the facts that are similar and contradictory to the new fact."
+    f'2. If requested for creation and there are similar or contradictory facts, call the "send_to_judge" tool.'
+    f'3. If requested for creation and there are no similar or contradictory facts, call the "create_fact" tool.'
+    f'4. If requested for deletion and there are similar or contradictory facts, call "deletion_confirmation" tool.'
+    f'5. If requested for deletion and there are no similar or contradictory facts, say something like "Cannot delete fact because there are no similar or contradictory facts".\n'
+    f"Examples:"
+    f"Example 1:"
+    f'Input: "<CREATE_FACT> I love cheese. All facts: I enjoy eating cheese. I love cheese. I hate cheese."'
+    f'Action: "Tool call: send_to_judge"'
+    f"Example 2:"
+    f'Input: "<CREATE_FACT> I love cheese. All facts: I enjoy eating beef."'
+    f'Action: "Tool call: create_fact"'
+    f'Output: "Created fact: I love cheese."'
+    f"Example 3:"
+    f'Input: "<DELETE_FACT> I love cheese. All facts: I enjoy eating cheese. I love cheese. I hate cheese."'
+    f'Action: "Tool call: deletion_confirmation"'
+    f'Output: "Confirmation: I love cheese."'
+    f"Example 4:"
+    f'Input: "<DELETE_FACT> I love cheese. All facts: I enjoy eating beef."'
+    f'Action: "Tool call: deletion_confirmation"'
+    f'Output: "Cannot delete fact because there are no similar or contradictory facts".\n'
+)
 
 # ----------------------------------CUSTOM DATACLASSES-----------------------------------
+
 
 @dataclass
 class FactProcessingEngineCommand(Command):
@@ -94,10 +102,14 @@ class FactProcessingEngine(Engine):
         )
         self.llm_manager = Gpt41Mini(Providers.OPENAI)
         self.tool_manager = ToolManager(
-            engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
+            engine_id=self.engine_id,
+            session_id=self.session_id,
+            llm_model_name="openai",
         )
 
-    async def handle_command(self, command: FactProcessingEngineCommand) -> CommandResult:
+    async def handle_command(
+        self, command: FactProcessingEngineCommand
+    ) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
 
         Args:
@@ -117,18 +129,17 @@ class FactProcessingEngine(Engine):
         User details are appending to the prompt.
         If the prompt contains a CREATE_FACT_TOKEN or DELETE_FACT_TOKEN,
         then all facts relating to the user are appended to the prompt.
-        
+
         Args:
             prompt: The prompt to parse
         """
         content = ""
         discord_id = "774065995508744232"
-        content += f'My discord id is {discord_id}. {prompt}'
+        content += f"My discord id is {discord_id}. {prompt}"
         if CREATE_FACT_TOKEN in prompt or DELETE_FACT_TOKEN in prompt:
             content += get_all_facts(discord_id)
 
         return content
-
 
     async def execute(self, prompt: str) -> str:
         """This function executes the engine.
@@ -139,7 +150,7 @@ class FactProcessingEngine(Engine):
         If user wants to delete a fact:
             If there are similar or contradictory facts, "deletion_confirmation" tool is called.
             If there are no similar or contradictory facts, nothing happens.
-        
+
         Args:
             prompt: The prompt to execute
         """
@@ -193,14 +204,17 @@ class FactProcessingEngine(Engine):
                         FactProcessingEngineStatusEvent(
                             status="executing tool", session_id=self.session_id
                         )
-                    )                
-                    
+                    )
+
                     # Message bus is hidden from the llm, insert it here manually
-                    if tool_call.function.name == "send_to_judge" or tool_call.function.name == "deletion_confirmation":
+                    if (
+                        tool_call.function.name == "send_to_judge"
+                        or tool_call.function.name == "deletion_confirmation"
+                    ):
                         args = json.loads(tool_call.function.arguments)
                         args["session_id"] = self.session_id
                         tool_call_obj.arguments = json.dumps(args)
-                        
+
                     result = await self.tool_manager.execute_tool_call(tool_call_obj)
 
                     # Convert result to string if needed for history
@@ -233,7 +247,6 @@ class FactProcessingEngine(Engine):
                         content=error_msg,
                     )
 
-    
     async def register_tool(self, function):
         """Register a function as a tool.
 
@@ -289,5 +302,3 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(main())
-
-

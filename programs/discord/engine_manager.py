@@ -31,9 +31,9 @@ from darcy.notion_crud_engine_v3 import (
     NotionCRUDEngineStatusEvent,
     NotionCRUDEngineV3,
 )
-from tools.general.functions import store_fact
-from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
-from tools.notion.notion_functions import (
+from custom_tools.general.functions import store_fact
+from custom_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
+from custom_tools.brain.notion.notion_functions import (
     create_task,
     get_active_projects,
     get_active_tasks,

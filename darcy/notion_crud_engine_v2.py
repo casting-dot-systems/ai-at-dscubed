@@ -14,7 +14,7 @@ from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 
 
-from tools.notion.data import (
+from custom_tools.brain.notion.data import (
     UserData,
     get_user_from_notion_id,
     notion_user_id_type,
@@ -90,7 +90,9 @@ class NotionCRUDEngineV2:
         # self.llm_manager = Gpt41Mini(Providers.OPENAI)
         self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
         self.tool_manager = ToolManager(
-            engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
+            engine_id=self.engine_id,
+            session_id=self.session_id,
+            llm_model_name="openai",
         )
 
         # Set system prompt if provided
@@ -221,10 +223,14 @@ class NotionCRUDEngineV2:
                                 temp["notion_project_id"]
                             ]
                         # AI : Get user data using the new function
-                        notion_id = notion_user_id_type(temp["user_id"])  # AI : Type cast
+                        notion_id = notion_user_id_type(
+                            temp["user_id"]
+                        )  # AI : Type cast
                         user_data: UserData | None = get_user_from_notion_id(notion_id)
                         # AI : Use user name if found, otherwise keep original or indicate unknown
-                        temp["user_id"] = user_data.name if user_data else "Unknown User"
+                        temp["user_id"] = (
+                            user_data.name if user_data else "Unknown User"
+                        )
 
                         result = await self.message_bus.execute(
                             NotionCRUDEngineConfirmationCommand(

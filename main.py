@@ -40,7 +40,7 @@ def main():
 
         # Run the bot using uv
         # TODO this is broken on my machine atm
-        os.system("uv run programs/discord/bot.py") 
+        os.system("uv run programs/discord/bot.py")
         # running -m programs/discord/bot.py (as a module) doesn't work on my computer, add a comment if you need to use -m
 
     except FileNotFoundError as e:

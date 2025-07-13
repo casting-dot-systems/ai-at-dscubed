@@ -12,7 +12,7 @@ from llmgine.llm.tools.toolCall import ToolCall
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 
-from tools.notion.data import (
+from custom_tools.brain.notion.data import (
     UserData,
     get_user_from_notion_id,
     notion_user_id_type,
@@ -89,7 +89,9 @@ class NotionCRUDEngine:
             engine_id=self.engine_id, session_id=self.session_id
         )
         self.tool_manager = ToolManager(
-            engine_id=self.engine_id, session_id=self.session_id, llm_model_name="openai"
+            engine_id=self.engine_id,
+            session_id=self.session_id,
+            llm_model_name="openai",
         )
 
         # Set system prompt if provided
@@ -262,7 +264,7 @@ class NotionCRUDEngine:
                 elif tool_call_obj.name == "get_active_tasks":
                     self.temp_task_lookup = result
         except Exception as e:
-            return CommandResult(success=False, original_command=command, error=str(e)) # type: ignore # TODO what is original_command
+            return CommandResult(success=False, original_command=command, error=str(e))  # type: ignore # TODO what is original_command
 
     async def process_message(self, message: str) -> str:
         """Process a user message and return the response.

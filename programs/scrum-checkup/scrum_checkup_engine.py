@@ -1,5 +1,10 @@
+import asyncio
+import uuid
+import os
+import dotenv
 from dataclasses import dataclass
 from typing import Any, Dict, List
+
 from llmgine.messages import Command, CommandResult
 from llmgine.messages import Event
 from llmgine.llm.providers.openai_provider import OpenAIProvider
@@ -8,12 +13,8 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.bus.bus import MessageBus
 from llmgine.llm.tools.toolCall import ToolCall
 from llmgine.llm import SessionID
-from program_types import DiscordChannelID
 
-import asyncio
-import uuid
-import os
-import dotenv
+from scrum_checkup_types import DiscordChannelID
 
 dotenv.load_dotenv()
 
@@ -64,7 +65,7 @@ class ScrumMasterEngine:
         self.system_prompt = system_prompt
         self.engine_id = str(uuid.uuid4())
         self.model = OpenAIProvider(
-            model="gpt-4.1", api_key=os.getenv("OPENAI_API_KEY")
+            model="gpt-4.1", api_key=os.getenv("OPENAI_API_KEY") or ""
         )
         self.context_manager: SimpleChatHistory = SimpleChatHistory(
             engine_id=self.engine_id, session_id=self.session_id
@@ -90,8 +91,6 @@ class ScrumMasterEngine:
         Returns:
             CommandResult: The result of the command execution
         """
-        max_tool_calls = 99
-        tool_call_count = 0
         self.context_manager.store_string(
             string=command.prompt,
             role="user",
@@ -106,8 +105,8 @@ class ScrumMasterEngine:
                         session_id=self.session_id,
                     )
                 )
-                response = await self.model.generate(
-                    messages=current_context, tools=tools
+                response = await self.model.generate( # type: ignore
+                    messages=current_context, tools=tools # type: ignore
                 )
 
                 # 5. Extract the first choice's message object
@@ -196,25 +195,23 @@ async def main():
         YesNoPrompt,
     )
 
-    from tools.general.functions import store_fact
-    from tools.gmail.gmail_client import read_emails, reply_to_email, send_email
-
     app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
     await app.bootstrap()
-    cli = EngineCLI("test")
+    cli = EngineCLI(SessionID("test"))
     engine = ScrumMasterEngine(
         system_prompt=f"""You are a scrum master. You are responsible for managing the scrum process. After the user has finished their checkup, if you believe the user will want to end the conversation, 
         you will call the request_end_conversation tool.
         """,
-        session_id="test",
+        session_id=SessionID("test"),
+        channel_id=DiscordChannelID("1234567890"),
     )
     await engine.tool_manager.register_tool(request_end_conversation)
     cli.register_engine(engine)
-    cli.register_engine_command(ScrumMasterCommand, engine.handle_command)
+    cli.register_engine_command(ScrumMasterCommand, engine.handle_command) # type: ignore
     cli.register_engine_result_component(EngineResultComponent)
     cli.register_loading_event(ScrumMasterEngineStatusEvent)
     cli.register_component_event(ScrumMasterEngineToolResultEvent, ToolComponentShort)
-    cli.register_prompt_command(ScrumMasterConfirmEndConversationCommand, YesNoPrompt)
+    cli.register_prompt_command(ScrumMasterConfirmEndConversationCommand, YesNoPrompt) # type: ignore
     await cli.main()
 
 

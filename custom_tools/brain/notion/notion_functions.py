@@ -8,24 +8,6 @@ from notion_client import Client
 
 load_dotenv()
 
-NOTION_LOOKUP = {
-    "241085495398891521": {
-        "name": "Nathan Luo",
-        "role": "AI Director",
-        "notion_id": "f746733c-66cc-4cbc-b553-c5d3f03ed240",
-    },
-    "373796704450772992": {
-        "name": "Pranav Jayanty",
-        "role": "AI Officer",
-        "notion_id": "c005948c-9115-4a4d-b3c2-78286fa75fdb",
-    },
-    "1195065884713156728": {
-        "name": "Antoine Dulauroy",
-        "role": "AI Officer",
-        "notion_id": "1bbd872b-594c-81f5-bc03-0002a7229ca6",
-    },
-}
-
 NOTION_PRODUCTION_DATABASE_ID_TASKS: str = "ed8ba37a719a47d7a796c2d373c794b9"
 NOTION_PRODUCTION_DATABASE_ID_PROJECTS: str = "918affd4ce0d4b8eb7604d972fd24826"
 
@@ -58,29 +40,31 @@ class NotionClient:
         return cls._instance
 
 
-def get_all_users() -> list[dict[str, Any]]:
+def get_all_users() -> list[dict[str, str]]:
     """
     Get all users from the users database
     """
     notion_client: Client = NotionClient()
-    response = notion_client.users.list()
+    response: Any = notion_client.users.list()
 
-    user_list: list[Any] = response.get("results", [])
-    for user in user_list:
-        print(user.get("id"), user.get("name"))
+    notion_users: list[dict[str, Any]] = response.get("results", [])
+
+    user_list: list[dict[str, str]] = []
+
+    for user in notion_users:
         user_list.append(
             {
-                "id": user.get("id"),
-                "name": user.get("name"),
+                "id": user.get("id", ""),
+                "name": user.get("name", ""),
             }
-        )  # TODO use userdata?
+        )
     return user_list
 
 
 def get_active_tasks(
     notion_user_id: Optional[str] = None,
     notion_project_id: Optional[str] = None,
-) -> dict[str, dict[str, Any]]:
+) -> dict[Any, dict[str, Any]]:
     """
     Get all active tasks from the tasks database with provided filters
 
@@ -121,13 +105,13 @@ def get_active_tasks(
         )
 
     # quering Task database
-    response = notion_client.databases.query(
+    response: Any = notion_client.databases.query(
         database_id=NOTION_PRODUCTION_DATABASE_ID_TASKS,
         filter=filter_obj,  # should database id be notion_project_id?
     )
 
-    tasks = response.get("results", [])
-    parsed_tasks = {}
+    tasks: list[dict[str, Any]] = response.get("results", [])
+    parsed_tasks: dict[Any, dict[str, Any]] = {}
     for task in tasks:
         # Get properties safely
         properties = task.get("properties", {})
@@ -171,12 +155,28 @@ def get_active_tasks(
             # notion_user_id = userID_inCharge_list[0].get("id")
             notion_user_id = userID_inCharge_list
 
+        # Parse task description safely
+        task_description = None
+        task_description_prop = properties.get("Description", {})
+        task_description_list = task_description_prop.get("rich_text", [])
+        if task_description_list and len(task_description_list) > 0:
+            task_description = task_description_list[0].get("text", {}).get("content")
+
+        # Parse task progress safely
+        task_progress = None
+        task_progress_prop = properties.get("Task Progress", {})
+        task_progress_list = task_progress_prop.get("rich_text", [])
+        if task_progress_list and len(task_progress_list) > 0:
+            task_progress = task_progress_list[0].get("text", {}).get("content")
+
         parsed_tasks[task.get("id")] = {
             "name": name,
             "status": status,
             "due_date": due_date,
             "project": project,
             "notion_user_id": notion_user_id,
+            "task_description": task_description,
+            "task_progress": task_progress,
         }
 
     return parsed_tasks
@@ -262,8 +262,9 @@ def update_task(
     task_status: Optional[
         Literal["Not Started", "In Progress", "Blocked", "To Review", "Done", "Archive"]
     ] = None,  # TODO should maybe make a property?
+    task_description: Optional[str] = None,
     task_due_date: Optional[str] = None,
-    task_in_charge: Optional[list[Any]] = None,  # TODO define type
+    task_in_charge: Optional[list[str]] = None,
     task_event_project: Optional[str] = None,
 ) -> Any:
     """
@@ -273,15 +274,16 @@ def update_task(
         notion_task_id: The ID of the task to update
         task_name: The name of the task
         task_status: The status of the task (to label a task as finished or completed, use Done word)
+        task_description: The detailed description of the task
         task_due_date: The due date of the task ISO 8601 with timezone (we are in AEST)
-        task_in_charge: The user of the person in charge of the task
+        task_in_charge: A list of the notion IDs of the people in charge of the task
         task_event_project: The ID of the project the task is associated with (need to call get_active_projects to get the list of projects and their ids)
 
     Returns:
         Success or failure of the update
     """
     properties = {}
-    print("HELLO I AM HERE")
+
     if task_name:
         properties["Name"] = {"title": [{"text": {"content": task_name}}]}
 
@@ -289,20 +291,19 @@ def update_task(
         properties["Status"] = {"status": {"name": task_status}}
 
     if task_due_date:
-        print("HELLO I AM HERE 2")
         date = datetime.fromisoformat(task_due_date)
         properties["Due Dates"] = {"date": {"start": date}}
-        print("HELLO I AM HERE 3")
 
     if task_in_charge:
-        first_user = task_in_charge[0]
-
         properties["In Charge"] = {
-            "people": [{"object": "user", "id": first_user.notion_id}]
-        }  # TODO update
+            "people": [{"object": "user", "id": user_id} for user_id in task_in_charge]
+        }
 
     if task_event_project:
         properties["Event/Project"] = {"relation": {"contains": task_event_project}}
+
+    if task_description:
+        properties["Description"] = {"rich_text": [{"text": {"content": task_description}}]}
 
     notion_client: Client = NotionClient()
     response: Any = notion_client.pages.update(
@@ -310,20 +311,63 @@ def update_task(
         properties=properties,
     )
 
-    print(response)
     return response
 
+def update_task_progress(
+    notion_task_id: str,
+    user_name: str,
+    task_progress: str,
+) -> Any:
+    """
+    Update the progress of a task by the people in charge of the task
+    
+    Args:
+        notion_task_id: The notion ID of the task to update
+        user_name: The name of the user who is updating the progress
+        task_progress: The a brief description of the progress of the task, mentioned by the people in charge of the task during scrum check-ins
+    
+    Returns:
+        Success or failure of the update
+    """
 
-if __name__ == "__main__":
-    import time
-    from pprint import pprint
+    # Get the old task progress
+    notion_client: Client = NotionClient()
+    response: Any = notion_client.pages.retrieve(
+        page_id=notion_task_id,
+    )
+    properties = response.get("properties", {})
 
-    start_time = time.time()
-    tasks = get_active_tasks(notion_user_id="f746733c-66cc-4cbc-b553-c5d3f03ed240")
-    pprint(tasks)
-    # pprint(get_all_users())
-    end_time = time.time()
-    print(f"Time taken: {end_time - start_time} seconds")
+    # Parse old task progress
+    old_task_progress = ""
+    task_progress_prop = properties.get("Task Progress", {})
+    task_progress_list = task_progress_prop.get("rich_text", [])
+    if task_progress_list and len(task_progress_list) > 0:
+        old_task_progress = task_progress_list[0].get("text", {}).get("content")
+
+    new_properties = {}
+    # Format progress
+    formatted_task_progress = f"{user_name} (Updated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}): {task_progress}"
+    new_properties["Task Progress"] = {"rich_text": [{"text": {"content": old_task_progress + '\n' + formatted_task_progress}}]}
+
+    
+    notion_client: Client = NotionClient()
+    response: Any = notion_client.pages.update(
+        page_id=notion_task_id,
+        properties=new_properties,
+    )
+
+    return response
+
+# if __name__ == "__main__":
+    # import time
+    # from pprint import pprint
+
+    # start_time = time.time()
+    # tasks = get_active_tasks(notion_user_id="1bbd872b-594c-8123-a9c8-0002e6ee833b")
+    # pprint(tasks)
+    # # pprint(get_all_users())
+    # end_time = time.time()
+    # print(f"Time taken: {end_time - start_time} seconds")
 
     # start_time = time.time()
     # projects = get_active_projects()
@@ -344,14 +388,23 @@ if __name__ == "__main__":
 
     # start_time = time.time()
     # response = update_task(
-    #     notion_task_id="1cbc2e93-a412-8112-906a-cf4115b04702",
-    #     task_status="Done",
+    #     notion_task_id="226c2e93-a412-8016-9bf2-e84f1335e2d7",
+    #     task_description="Test the functionality of the meeting recording bot",
+    #     task_in_charge=["c005948c-9115-4a4d-b3c2-78286fa75fdb","1bbd872b-594c-8123-a9c8-0002e6ee833b"],
     # )
-    # pprint(response)
     # end_time = time.time()
     # print(f"Time taken: {end_time - start_time} seconds")
 
     # start_time = time.time()
     # pprint(get_all_users())
+    # end_time = time.time()
+    # print(f"Time taken: {end_time - start_time} seconds")
+
+    # start_time = time.time()
+    # response = update_task_progress(
+    #     notion_task_id="226c2e93-a412-8016-9bf2-e84f1335e2d7",
+    #     user_name="PJ",
+    #     task_progress="I am done with the task",
+    # )
     # end_time = time.time()
     # print(f"Time taken: {end_time - start_time} seconds")
