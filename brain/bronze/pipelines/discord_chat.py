@@ -3,37 +3,45 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from brain.bronze.src.extractor.discord_extractor import DiscordExtractor
-from brain.bronze.src.utils.pipeline import Pipeline
-import sqlalchemy as sa
-
+from brain.bronze.src.utils.pipeline import Pipeline, get_ddl_path
 
 
 def main():
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Discord data pipeline')
+    parser = argparse.ArgumentParser(description='Discord chat data pipeline')
     parser.add_argument('--input-path', required=True, help='Path to input file')
     args = parser.parse_args()
     
     # Load environment variables
     load_dotenv()
-    bot_key = os.getenv('BOT_KEY') # Basically an authorised discord client
-    server_id = os.getenv('TEST_SERVER_ID') # The server id of the AI server
+    BOT_KEY = os.getenv('BOT_KEY')
+    TEST_SERVER_ID = os.getenv('TEST_SERVER_ID')
 
-    if not bot_key or not server_id:
-        raise ValueError("Bot Key and Server ID must be set in .env file")
+    if not BOT_KEY or not TEST_SERVER_ID:
+        raise ValueError("BOT_KEY and TEST_SERVER_ID must be set in .env file")
 
-    # DISCORD CHAT --------------------------------------------------------------------- */
-    discord_chat_extractor = DiscordExtractor(bot_key, server_id)
-    discord_chat_pipeline = Pipeline(
-        ddl_filepath = 'create_discord_chat_table.sql',
-        table_name = 'discord_chat',
+    # DISCORD CHAT PIPELINE
+    discord_chat_extractor = DiscordExtractor()
+    discord_chat_pipeline = Pipeline(schema='bronze')
+
+    # Extract
+    print("Fetching Discord chat data...")
+    raw_data = asyncio.run(discord_chat_extractor.fetch_discord_chat())
+    
+    # Execute DDL to create table
+    ddl_path = get_ddl_path('discord_chat.sql')
+    discord_chat_pipeline.execute_ddl(ddl_path)
+    
+    # Transform and Load
+    df = asyncio.run(discord_chat_extractor.parse_discord_data(raw_data))
+    discord_chat_pipeline.write_dataframe(
+        df=df,
+        table_name='discord_chats',
+        if_exists='append'
     )
+    
+    print("Discord chat pipeline completed successfully!")
 
-    raw_data = asyncio.run(discord_chat_extractor.fetch_discord_chat()) # Extract
-    if discord_chat_extractor.recreate_table:
-        discord_chat_pipeline.create_table() # Transform                            
-    discord_chat_pipeline.ingest_from_df(asyncio.run(discord_chat_extractor.parse_discord_data(raw_data))) # Load
-    discord_chat_pipeline.test_run_status()
 
 if __name__ == "__main__":
     main() 

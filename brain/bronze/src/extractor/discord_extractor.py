@@ -54,9 +54,12 @@ class DiscordExtractor:
                 
                 for channel in guild.text_channels:
                     channels_data.append({
+                        "server_id": guild.id,
+                        "server_name": guild.name,
                         "channel_id": channel.id,
                         "channel_name": channel.name,
                         "channel_created_at": channel.created_at.isoformat(),
+                        "ingestion_timestamp": datetime.now().isoformat(),
                     })
                 
                 print("Channel fetch completed successfully")
@@ -90,6 +93,8 @@ class DiscordExtractor:
                     # Fetch channel messages
                     async for message in channel.history(limit=None):
                         messages_data.append({
+                            # "server_id": guild.id,
+                            # "server_name": guild.name,
                             "channel_id": channel.id,
                             "channel_name": channel.name,
                             "thread_name": None,
@@ -100,7 +105,8 @@ class DiscordExtractor:
                             "content": message.content,
                             "chat_created_at": message.created_at.isoformat(),
                             "chat_edited_at": message.edited_at.isoformat() if message.edited_at else None,
-                            "is_thread": False
+                            "is_thread": False,
+                            "ingestion_timestamp": datetime.now().isoformat()
                         })
                     
                     # Fetch and process threads
@@ -121,7 +127,8 @@ class DiscordExtractor:
                                 "content": message.content,
                                 "chat_created_at": message.created_at.isoformat(),
                                 "chat_edited_at": message.edited_at.isoformat() if message.edited_at else None,
-                                "is_thread": True
+                                "is_thread": True,
+                                "ingestion_timestamp": datetime.now().isoformat()
                             })
                 
                 print("Chat history fetch completed successfully")
