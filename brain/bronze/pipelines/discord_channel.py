@@ -2,10 +2,9 @@ import argparse
 import os
 import asyncio
 from dotenv import load_dotenv
-from bronze.extractors.discord_extractor import DiscordExtractor
-from bronze.utils.pipeline import Pipeline
+from bronze.src.extractor.discord_extractor import DiscordExtractor
+from bronze.src.utils.pipeline import Pipeline, get_ddl_path
 import sqlalchemy as sa
-
 
 
 def main():
@@ -23,18 +22,26 @@ def main():
         raise ValueError("DARCY_KEY and TEST_SERVER_ID must be set in .env file")
     
     # DISCORD CHANNELS --------------------------------------------------------------------- */
-    discord_channels_extractor = DiscordExtractor(DARCY_KEY, TEST_SERVER_ID)
-    discord_channels_pipeline = Pipeline(
-        ddl_filepath = 'create_discord_channels_table.sql',
-        table_name = 'discord_channels',
-    )
+    discord_channels_extractor = DiscordExtractor()
+    discord_channels_pipeline = Pipeline(schema='bronze')
 
     # Follows an ETL process
     raw_data = asyncio.run(discord_channels_extractor.fetch_discord_channels()) # Extract
-    if discord_channels_extractor.recreate_table:
-        discord_channels_pipeline.create_table() # Transform
-    discord_channels_pipeline.ingest_from_df(asyncio.run(discord_channels_extractor.parse_discord_data(raw_data))) # Load
-    discord_channels_pipeline.test_run_status()
+    
+    # Execute DDL to create table
+    ddl_path = get_ddl_path('discord_channel.sql')
+    discord_channels_pipeline.execute_ddl(ddl_path)
+    
+    # Transform and Load
+    df = asyncio.run(discord_channels_extractor.parse_discord_data(raw_data))
+    discord_channels_pipeline.write_dataframe(
+        df=df,
+        table_name='discord_channel',
+        if_exists='append'
+    )
+    
+    print("Discord channel pipeline completed successfully!")
+
 
 if __name__ == "__main__":
     main() 

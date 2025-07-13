@@ -2,8 +2,8 @@ import argparse
 import os
 import asyncio
 from dotenv import load_dotenv
-from bronze.extractors.discord_extractor import DiscordExtractor
-from bronze.utils.pipeline import Pipeline
+from bronze.src.extractor.discord_extractor import DiscordExtractor
+from bronze.src.utils.pipeline import Pipeline
 import sqlalchemy as sa
 
 
