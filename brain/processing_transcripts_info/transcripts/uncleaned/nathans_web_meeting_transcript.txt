@@ -1,0 +1,7 @@
+[Meeting Transcript: Nathan's Web Project]
+
+Uh, hey, can you hear me? I think my mic is—wait, yeah, it’s working now. Yeah, I got you. Sorry, my dog was barking. So, um, about the homepage, did you get a chance to look at the wireframes? Yeah, I did, but, uh, I think the header is too big? Or maybe it’s just my screen. Also, the colors… I mean, do we really want that much blue? Oh, yeah, the blue. I was just using the default, but we can totally change it. Wait, hold on, my phone’s ringing—
+
+[2 min pause]
+
+Sorry, that was my mom. Where were we? Oh, right, colors. What if we try, like, a lighter shade? Yeah, lighter is good. Also, the blog section, I, uh, I couldn’t figure out how to get the posts to show up. The code just… it’s not working. Did you pull the latest from Git? I pushed a fix last night, I think. Or maybe it was this morning? Time is fake. Haha, yeah, I’ll check. Oh, and the about page—should we put Nathan’s photo or just a cartoon? Cartoon, for sure. Nathan hates his photos. Wait, did you see the email from him? He wants the site live by Friday. That’s, uh, soon. Oh, wow, okay. Guess we’re not sleeping this week. Anyway, I’ll fix the header and check the blog thing. You do the colors? Yup, I’ll do that after lunch. Or maybe after my nap. We’ll see. Cool, cool. Anything else? Nah, I think that’s it. Unless you wanna talk about the footer. But, like, who cares about footers? LOL, true. Alright, talk later. Later. 
