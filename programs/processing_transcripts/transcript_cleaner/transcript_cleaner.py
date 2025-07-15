@@ -3,8 +3,9 @@ import asyncio
 import aiofiles
 from openai import AsyncOpenAI
 
-UNCLEANED_DIR = os.path.join(os.path.dirname(__file__), '../../../brain/processing_transcripts_info/transcripts/uncleaned')
-CLEANED_DIR = os.path.join(os.path.dirname(__file__), '../../../brain/processing_transcripts_info/transcripts/cleaned')
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../brain/processing_transcripts_info/transcripts'))
+UNCLEANED_DIR = os.path.join(BASE_DIR, 'uncleaned')
+CLEANED_DIR = os.path.join(BASE_DIR, 'cleaned')
 
 SYSTEM_PROMPT = (
     "You are a transcript cleaner. You will receive a messy meeting transcript as a single block of text. "
@@ -44,4 +45,4 @@ async def clean_all_transcripts():
     await asyncio.gather(*(process_file(f) for f in files))
 
 if __name__ == "__main__":
-    asyncio.run(clean_all_transcripts())
+    asyncio.run(clean_all_transcripts()) 
