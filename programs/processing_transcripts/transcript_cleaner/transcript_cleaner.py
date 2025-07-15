@@ -18,7 +18,7 @@ SYSTEM_PROMPT = (
 async def clean_transcript_with_gpt(text: str) -> str:
     client = AsyncOpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4.1",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": text}
