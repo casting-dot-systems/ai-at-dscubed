@@ -1,0 +1,45 @@
+Maya: Let's start by reviewing the event timeline. The marathon date is set for September 15th.
+
+Liam: The city permit application is still pending, but it should be approved by next week.
+
+Liam: For sponsorship outreach, three local businesses have agreed to provide water stations and snacks. However, we still need a main sponsor for the finish line.
+
+Sophie: Regarding volunteer recruitment, we have 25 people signed up, but we need at least 40 for race day.
+
+Olivia: We should reach out to the university's running club to find more volunteers.
+
+Lucas: For route planning, the 10k loop is finalized. However, the 5k route needs a detour because of roadworks on Main Street.
+
+Maya: I'll check with the city about alternate routes.
+
+Liam: The registration website's payment gateway integration is almost done.
+
+Sophie: Let's make sure to test the mobile version of the website.
+
+[pause]
+
+Maya: About the t-shirt colors, I prefer blue.
+
+Lucas: I vote for green.
+
+[interruption]
+
+Sophie: Let's send a poll to all registered runners to decide.
+
+Olivia: We also need a medical tent and first aid volunteers.
+
+Sophie: I'll contact the local clinic about that.
+
+[pause]
+
+Maya: Before we wrap up, let's review action items. I'll follow up on permits and the route.
+
+Liam: I'll finish the payment integration and draft sponsor emails.
+
+Sophie: I'll recruit more volunteers and contact the clinic.
+
+Olivia: I'll coordinate with the running club.
+
+Lucas: I'll update the route map.
+
+Maya: Our next meeting is scheduled for two weeks from today. We'll also send out a project update email to all stakeholders by Friday.
