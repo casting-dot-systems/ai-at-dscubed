@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional, Any, List, Dict
 
 import sys
-sys.path.append(r"C:\Users\andys\OneDrive - The University of Melbourne\AI_DSCubed\Winter Program\Week 2 Project 1")
+sys.path.append(r"C:\Users\andys\OneDrive - The University of Melbourne\AI_DSCubed\Winter Program\Process Meeting Transcripts\llmgine\src\llmgine")
 
 from llmgine.bus.bus import MessageBus
 from llmgine.llm import SessionID, AsyncOrSyncToolFunction

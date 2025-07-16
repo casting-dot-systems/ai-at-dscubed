@@ -1,38 +1,38 @@
-Person 1: Hey, can you hear me? I think my mic is—wait, yes, it’s working now.
+Person 1: Hey, can you hear me? I think my mic is—wait, yeah, it’s working now.
 
-Person 2: Yeah, I got you. Sorry, my dog was barking. About the homepage, did you get a chance to look at the wireframes?
+Person 2: Yeah, I got you. Sorry, my dog was barking.
 
-Person 1: Yes, I did, but I think the header is too big. Or maybe it’s just my screen. Also, the colors—do we really want that much blue?
+Person 1: So, about the homepage, did you get a chance to look at the wireframes?
 
-Person 2: Oh, the blue. I was just using the default, but we can totally change it. Wait, hold on, my phone’s ringing—
+Person 2: Yeah, I did, but I think the header is too big. Or maybe it’s just my screen. Also, the colors—do we really want that much blue?
 
-[pause: 2 minutes]
+Person 1: Oh, yeah, the blue. I was just using the default, but we can totally change it. Wait, hold on, my phone’s ringing—
 
-Person 2: Sorry, that was my mom. Where were we?
+[pause, 2 minutes]
 
-Person 1: Colors.
+Person 1: Sorry, that was my mom. Where were we?
 
-Person 2: What if we try a lighter shade?
+Person 2: Oh, right, colors. What if we try a lighter shade?
 
-Person 1: Lighter is good. Also, the blog section—I couldn’t figure out how to get the posts to show up. The code just isn’t working.
+Person 1: Yeah, lighter is good. Also, the blog section—I couldn’t figure out how to get the posts to show up. The code just isn’t working.
 
 Person 2: Did you pull the latest from Git? I pushed a fix last night, I think. Or maybe it was this morning? Time is fake.
 
-Person 1: Haha, yeah. I’ll check. Oh, and the about page—should we put Nathan’s photo or just a cartoon?
+Person 1: Haha, yeah, I’ll check. Oh, and the about page—should we put Nathan’s photo or just a cartoon?
 
 Person 2: Cartoon, for sure. Nathan hates his photos. Wait, did you see the email from him? He wants the site live by Friday.
 
 Person 1: That’s soon.
 
-Person 2: Oh, wow. Guess we’re not sleeping this week. Anyway, I’ll fix the header and check the blog issue. Can you handle the colors?
+Person 2: Oh, wow, okay. Guess we’re not sleeping this week.
 
-Person 1: Yup, I’ll do that after lunch. Or maybe after my nap. We’ll see.
+Person 1: Anyway, I’ll fix the header and check the blog thing. You do the colors?
 
-Person 2: Cool. Anything else?
+Person 2: Yup, I’ll do that after lunch. Or maybe after my nap. We’ll see.
 
-Person 1: No, I think that’s it. Unless you want to talk about the footer.
+Person 1: Cool, cool. Anything else?
 
-Person 2: But who cares about footers?
+Person 2: Nah, I think that’s it. Unless you want to talk about the footer. But, who cares about footers?
 
 Person 1: True. Alright, talk later.
 
@@ -40,7 +40,7 @@ Person 2: Later.
 
 [10 minutes later]
 
-Person 1: Hey, back again. I tried to fix the header, but now the nav bar is floating in the middle of the page. No idea why. Did you change something in the CSS grid?
+Person 1: Hey, back again. So, I tried to fix the header, but now the nav bar is floating in the middle of the page. No idea why. Did you change something in the CSS grid?
 
 Person 2: Maybe? I was messing with the container class, but I thought it only affected the sidebar.
 
@@ -48,15 +48,15 @@ Person 1: Well, it’s definitely floating. Also, the logo disappeared.
 
 Person 2: Wait, what? It was there this morning. Did you rename the assets folder?
 
-Person 1: Oh, yes, I did. Sorry, I’ll fix the path.
+Person 1: Oh, shoot, yeah, I did. Sorry, I’ll fix the path.
 
 Person 2: No worries. Also, do you think we should add a contact form? Nathan mentioned it in his last message.
 
-Person 1: Contact forms. I guess we have to. Do you want to use a plugin or build our own?
+Person 1: Contact forms. I guess we have to. Do you want to use a plugin or just roll our own?
 
-Person 2: Let’s just use a plugin—less pain. But can we make sure it doesn’t send spam? Last time we got about 50 bot emails.
+Person 2: Let’s just use a plugin—less pain. But can we make sure it doesn’t send spam? Last time we got like 50 bot emails.
 
-Person 1: I’ll add a captcha. Or maybe just a simple math question, like “What’s 2+2?”
+Person 1: I’ll add a captcha. Or maybe just a simple math question. Like, what’s 2+2?
 
 Person 2: That’ll stop the bots. Or confuse the users.
 
@@ -66,11 +66,11 @@ Person 1: True.
 
 Person 2: Oh, hey, is that Nathan?
 
-Person 1: No, false alarm. Just my phone connecting to Bluetooth.
+Person 1: No, false alarm, just my phone connecting to Bluetooth.
 
 Person 2: Classic. Anyway, did you see the Figma update? The mobile view is all squished.
 
-Person 1: Yes, I noticed. I think the flexbox isn’t wrapping right. I’ll take a look. Also, do you want to grab coffee after this? I need caffeine.
+Person 1: Yeah, I noticed. I think the flexbox isn’t wrapping right. I’ll take a look. Also, do you want to grab coffee after this? I need caffeine.
 
 Person 2: Yes, please. But let’s finish the about page first.
 
@@ -78,11 +78,11 @@ Person 1: Agreed. Oh, and can you review my PR? I left some comments on your las
 
 Person 2: Cool, I’ll check. By the way, did you ever fix that weird bug with the dark mode toggle?
 
-Person 1: Not yet. It keeps switching back to light mode when you refresh. I think it’s a localStorage issue. I’ll debug it after lunch.
+Person 1: Not yet. It keeps switching back to light mode when you refresh. I think it’s a localStorage thing. I’ll debug it after lunch.
 
 Person 2: Sounds good.
 
-[pause: 5 minutes]
+[pause, 5 minutes]
 
 Person 1: Okay, I’m heading out for coffee. Ping me if you break the site.
 
