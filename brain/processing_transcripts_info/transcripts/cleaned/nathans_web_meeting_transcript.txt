@@ -8,7 +8,7 @@ Person 2: Yeah, I did, but I think the header is too big. Or maybe it’s just m
 
 Person 1: Oh, yeah, the blue. I was just using the default, but we can totally change it. Wait, hold on, my phone’s ringing—
 
-[pause: 2 minutes]
+[pause, 2 minutes]
 
 Person 1: Sorry, that was my mom. Where were we?
 
@@ -36,7 +36,7 @@ Person 2: True. Alright, talk later.
 
 Person 1: Later.
 
-[pause: 10 minutes]
+[10 minutes later]
 
 Person 1: Hey, back again. So, I tried to fix the header, but now the nav bar is floating in the middle of the page. No idea why. Did you change something in the CSS grid?
 
@@ -52,7 +52,7 @@ Person 2: No worries. Also, do you think we should add a contact form? Nathan me
 
 Person 1: Contact forms. I guess we have to. Do you want to use a plugin or just roll our own?
 
-Person 2: Let’s just use a plugin, less pain. But can we make sure it doesn’t send spam? Last time we got like 50 bot emails.
+Person 2: Let’s just use a plugin—less pain. But can we make sure it doesn’t send spam? Last time we got like 50 bot emails.
 
 Person 1: I’ll add a captcha. Or maybe just a simple math question. Like, what’s 2+2?
 
@@ -80,12 +80,12 @@ Person 1: Not yet. It keeps switching back to light mode when you refresh. I thi
 
 Person 2: Sounds good.
 
-[pause: 5 minutes]
+[pause, 5 minutes]
 
-Person 1: Okay, I’m heading out for coffee. Ping me if you break the site.
+Person 2: Okay, I’m heading out for coffee. Ping me if you break the site.
 
-Person 2: Will do. Don’t forget to push your changes!
+Person 1: Will do. Don’t forget to push your changes!
 
-Person 1: Already did. See you.
+Person 2: Already did. See you.
 
-Person 2: Later.
+Person 1: Later.
