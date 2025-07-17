@@ -17,6 +17,7 @@ from discord.ext import commands
 from llmgine.bootstrap import ApplicationBootstrap
 from llmgine.bus.bus import MessageBus
 
+from api.client import WebSocketAPIClient
 from config import DiscordBotConfig
 from engine_manager import EngineManager
 from message_processor import MessageProcessor
@@ -46,13 +47,25 @@ class DarcyBot:
             self.config, self.session_manager
         )
 
+        self.api_client: WebSocketAPIClient = WebSocketAPIClient()
+
         # Set up event handlers
         self.bot.event(self.on_ready)
         self.bot.event(self.on_message)
 
+        # Add slash command
+        self.setup_slash_commands()
+
     async def on_ready(self) -> None:
         """Called when the bot is ready to start."""
         print(f"Logged in as {self.bot.user}")
+
+        # Sync slash commands
+        try:
+            synced = await self.bot.tree.sync(guild=discord.Object(id=int(self.config.guild_id)))
+            print(f"Synced {len(synced)} command(s)")
+        except Exception as e:
+            print(f"Failed to sync commands: {e}")
 
     async def on_message(self, message: discord.Message) -> None:
         """Handle incoming messages."""
@@ -107,6 +120,25 @@ class DarcyBot:
         finally:
             # Ensure the bus is stopped when the application ends
             await bus.stop()
+
+    def setup_slash_commands(self) -> None:
+        """Set up slash commands for the bot."""
+
+        @self.bot.tree.command(
+            name="connect", description="Create a new session and form stable connection"
+        )
+        async def connect(interaction: discord.Interaction): # type: ignore
+            """Slash command to create a new session and form stable connection."""
+            try:
+                response = await self.api_client.create_session()
+
+                await interaction.response.send_message(
+                    f"✅ Session created! Session ID: {response.session_id}", ephemeral=True
+                )
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"❌ Failed to create session: {str(e)}", ephemeral=True
+                )
 
 
 async def main() -> None:

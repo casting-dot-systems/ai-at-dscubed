@@ -35,12 +35,15 @@ class DiscordBotConfig(ApplicationConfig):
     # Discord configuration
     max_response_length: int = 1900
     bot_key: str = ""
-    bot_id: int = os.getenv("STELLA_BOT_ID")
-
+    bot_id: str = ""
+    guild_id: str = ""
+    
     @classmethod
     def load_from_env(cls) -> "DiscordBotConfig":
         """Load configuration from environment variables."""
         dotenv.load_dotenv(override=True)
         config = cls()
-        config.bot_key = os.getenv("STELLA_BOT_KEY")
+        config.bot_key = os.getenv("BOT_KEY") or ""
+        config.bot_id = os.getenv("BOT_ID") or ""
+        config.guild_id = os.getenv("GUILD_ID") or ""
         return config
