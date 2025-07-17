@@ -1,6 +1,7 @@
 import os
 import asyncio
 import uuid
+import aiofiles
 from dataclasses import dataclass
 from typing import Any, Optional, List
 
@@ -15,6 +16,7 @@ from llmgine.ui.cli.components import EngineResultComponent
 
 TRANSCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../brain/processing_transcripts_info/transcripts/cleaned'))
 PROJECTS_SQL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../brain/processing_transcripts_info/DML/sample_projects.sql'))
+SUMMARIES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../brain/processing_transcripts_info/summaries'))
 
 @dataclass
 class SummariseTranscriptCommand(Command):
@@ -51,10 +53,8 @@ class SummariserEngine:
 
     async def summarise(self, transcript_path: str) -> str:
         await self.bus.publish(SummariseTranscriptStatusEvent(status="Reading transcript and project info", session_id=self.session_id))
-        # Read transcript
         with open(transcript_path, 'r', encoding='utf-8') as f:
             transcript = f.read()
-        # Read project info
         with open(PROJECTS_SQL_PATH, 'r', encoding='utf-8') as f:
             project_info = f.read()
         await self.bus.publish(SummariseTranscriptStatusEvent(status="Generating summary via GPT-4.1", session_id=self.session_id))
@@ -69,11 +69,28 @@ class SummariserEngine:
             "Summary:"
         )
         response = await self.model.generate(messages=[{"role": "user", "content": prompt}])
-        # Extract summary from response
         summary = response.raw.choices[0].message.content or "(No summary returned)"
         await self.bus.publish(SummariseTranscriptResultEvent(summary=summary, session_id=self.session_id))
+        
+        # Save summary to file
+        await self.save_summary_to_file(transcript_path, summary)
+        
         await self.bus.publish(SummariseTranscriptStatusEvent(status="finished", session_id=self.session_id))
         return summary
+
+    async def save_summary_to_file(self, transcript_path: str, summary: str):
+        """Save the summary to a text file in the summaries directory."""
+        os.makedirs(SUMMARIES_DIR, exist_ok=True)
+        
+        # Create filename based on original transcript name
+        transcript_filename = os.path.basename(transcript_path)
+        summary_filename = transcript_filename.replace('.txt', '_summary.txt')
+        summary_path = os.path.join(SUMMARIES_DIR, summary_filename)
+        
+        async with aiofiles.open(summary_path, 'w', encoding='utf-8') as f:
+            await f.write(summary)
+        
+        print(f"Summary saved to: {summary_path}")
 
 def list_transcripts() -> List[str]:
     return [os.path.join(TRANSCRIPTS_DIR, f) for f in os.listdir(TRANSCRIPTS_DIR) if f.endswith('.txt')]
