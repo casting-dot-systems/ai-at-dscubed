@@ -6,17 +6,24 @@ from .types import (
     NotionDate, RichText
 )
 
-from .crud import (
-    # Event/Project CRUD
+from .events_projects import (
     create_event_project, get_event_project, update_event_project, delete_event_project, query_event_projects,
-    # Task CRUD
+    EventProjectCRUDError
+)
+
+from .tasks import (
     create_task, get_task, update_task, delete_task, query_tasks,
-    # Team CRUD
+    TaskCRUDError
+)
+
+from .teams import (
     create_team, get_team, update_team, delete_team, query_teams,
-    # Document CRUD
+    TeamCRUDError
+)
+
+from .documents import (
     create_document, get_document, update_document, delete_document, query_documents,
-    # Exception
-    NotionCRUDError
+    DocumentCRUDError
 )
 
 from .client import get_notion_client
@@ -38,6 +45,6 @@ __all__ = [
     # Client
     "get_notion_client",
     
-    # Exception
-    "NotionCRUDError"
+    # Exceptions
+    "EventProjectCRUDError", "TaskCRUDError", "TeamCRUDError", "DocumentCRUDError"
 ]
