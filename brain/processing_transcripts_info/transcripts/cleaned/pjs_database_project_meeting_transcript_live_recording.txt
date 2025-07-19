@@ -16,13 +16,13 @@ Ryan: I'm testing different index strategies to speed up report generation.
 
 Alex: I found a bug where duplicate records appear after batch imports.
 
-Olivia: We should add a unique constraint to prevent that.
+Olivia: We could add a unique constraint to prevent that.
 
 Lucas: I'll implement the unique constraint.
 
 [pause]
 
-Megan: Regarding backup and restore procedures, I want to automate nightly backups.
+Megan: Regarding backup and restore procedures, I'd like to automate nightly backups.
 
 Ryan: I'll test the restore process this week.
 
@@ -30,9 +30,9 @@ Ryan: I'll test the restore process this week.
 
 Megan: Should we use JSONB columns for flexible metadata, or stick with a strict schema? JSONB would make it easier to add new features.
 
-Alex: I'm worried about query performance and data validation with JSONB.
+Alex: I'm worried about query performance and data validation if we use JSONB.
 
-Ryan: Maybe we can use a hybrid approach—JSONB only for optional fields.
+Ryan: How about a hybrid approach? We could use JSONB only for optional fields.
 
 Olivia: The security team flagged some tables for missing encryption at rest.
 
@@ -46,7 +46,7 @@ Megan: I'll review the current roles and update the access policy.
 
 [pause]
 
-Ryan: Let's go over the migration plan. I'll write scripts to validate data integrity before and after migration.
+Ryan: Let's go over the migration plan in detail. I'll write scripts to validate data integrity before and after migration.
 
 Alex: I'll prepare a rollback plan in case anything goes wrong.
 
@@ -54,9 +54,7 @@ Olivia: We need better monitoring. I suggest setting up alerts for slow queries 
 
 Lucas: I'll look into integrating alerts with the team's Slack channel.
 
-[pause]
-
-Megan: I have some user feedback from the analytics team. They want faster report generation and more export options.
+Megan: The analytics team wants faster report generation and more export options.
 
 Alex: Let's prioritize query optimization and add CSV export to the backlog.
 
@@ -66,7 +64,7 @@ Alex: Before we wrap up, let's review action items. I'll finalize the schema, re
 
 Megan: I'll optimize queries, set up backups, and review user roles.
 
-Ryan: I'll test the migration and restore processes, and write validation scripts.
+Ryan: I'll test the migration and restore process, and write validation scripts.
 
 Olivia: I'll coordinate with the dev team, test unique constraints, and set up monitoring.
 
@@ -80,4 +78,4 @@ Ryan: We've rewritten this database so many times!
 
 Megan: Next time, let's bring snacks to the meeting.
 
-[Everyone laughs]
+[meeting ends]

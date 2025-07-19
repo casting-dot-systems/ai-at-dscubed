@@ -2,6 +2,8 @@ import os
 import asyncio
 import aiofiles
 from openai import AsyncOpenAI
+from dotenv import load_dotenv
+load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../brain/processing_transcripts_info/transcripts'))
 UNCLEANED_DIR = os.path.join(BASE_DIR, 'uncleaned')

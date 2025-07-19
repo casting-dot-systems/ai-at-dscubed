@@ -14,7 +14,7 @@ Megan: Perfect. I'm working on optimizing the queries for the analytics dashboar
 
 Ryan: I'm testing different index strategies to speed up report generation.
 
-Alex: I also found a bug where duplicate records appear after batch imports.
+Alex: I also brought up a bug where duplicate records appear after batch imports.
 
 Olivia: We should add a unique constraint for that.
 
@@ -52,7 +52,7 @@ Megan: I have some user feedback from the analytics team. They want faster repor
 
 Alex: So we agreed to prioritize query optimization and add CSV export to the backlog.
 
-Ryan: Before wrapping up, we reviewed action items: Alex to finalize the schema, review constraints, and draft the rollback plan.
+Ryan: Before wrapping up, we reviewed action items: Alex to finalize the schema, review constraints, and draft a rollback plan.
 
 Megan: Megan to optimize queries, set up backups, and review user roles.
 
