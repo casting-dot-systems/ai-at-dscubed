@@ -1,0 +1,25 @@
+[project]
+name = "meeting-recorder-bot"
+version = "0.1.0"
+description = "Meeting recorder bot for AI at D3"
+requires-python = ">=3.13"
+dependencies = [
+    "llmgine",
+    "org_tools",
+    "org_types",
+]
+
+[tool.uv.sources]
+llmgine = { workspace = true }
+org_tools = { workspace = true }
+org_types = { workspace = true }
+
+[project.scripts]
+meeting-recorder = "meeting_recorder_bot.recorderbot:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["meeting_recorder_bot"]

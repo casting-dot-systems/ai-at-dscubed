@@ -1,6 +1,8 @@
 import asyncio
+import uuid
 from pydantic import PrivateAttr
 import json
+from dataclasses import dataclass
 from typing import Any, Callable, List, Optional
 
 from llmgine.llm import SessionID
@@ -14,12 +16,12 @@ from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
 
-from custom_tools.brain.notion.data import (
+from org_tools.brain.notion.data import (
     UserData,
     get_user_from_notion_id,
     notion_user_id_type,
 )
-from custom_tools.brain.notion.notion_functions import (
+from org_tools.brain.notion.notion_functions import (
     create_task,
     get_active_projects,
     get_active_tasks,
@@ -27,24 +29,29 @@ from custom_tools.brain.notion.notion_functions import (
     update_task,
 )
 
+
+@dataclass
 class NotionCRUDEnginePromptCommand(Command):
     """Command to process a user prompt with tool usage."""
 
     prompt: str = ""
 
 
+@dataclass
 class NotionCRUDEngineConfirmationCommand(Command):
     """Command to confirm a user action."""
 
     prompt: str = ""
 
 
+@dataclass
 class NotionCRUDEngineStatusEvent(Event):
     """Event emitted when a status update is needed."""
 
     status: str = ""
 
 
+@dataclass
 class NotionCRUDEnginePromptResponseEvent(Event):
     """Event emitted when a prompt is processed and a response is generated."""
 
@@ -53,6 +60,7 @@ class NotionCRUDEnginePromptResponseEvent(Event):
     tool_calls: Optional[List[str]] = None
 
 
+@dataclass
 class NotionCRUDEngineToolResultEvent(Event):
     """Event emitted when a tool result is generated."""
 
@@ -85,6 +93,7 @@ class NotionCRUDEngineV3(Engine):
         """
         super().__init__()
         # Use the provided message bus or create a new one
+        self.engine_id = uuid.uuid4()
         self._message_bus = MessageBus()
         self._session_id = SessionID(session_id)
         self._temp_project_lookup = {}
@@ -98,7 +107,7 @@ class NotionCRUDEngineV3(Engine):
         )
         self._llm_manager = Gpt41Mini(Providers.OPENAI)
         # self.llm_manager = Gemini25FlashPreview(Providers.OPENROUTER)
-        self._tool_manager : ToolManager = ToolManager(
+        self._tool_manager: ToolManager = ToolManager(
             engine_id=self.engine_id,
             session_id=self._session_id,
             llm_model_name="openai",
@@ -113,9 +122,7 @@ class NotionCRUDEngineV3(Engine):
         for function in function_list:
             await self._tool_manager.register_tool(function)
 
-    async def handle_command(
-        self, command: Command
-    ) -> CommandResult:
+    async def handle_command(self, command: Command) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
 
         Args:
@@ -336,6 +343,7 @@ class NotionCRUDEngineV3(Engine):
     def add_context(self, context: str, role: str) -> None:
         self._context_manager.store_string(context, role)
 
+
 async def main():
     from llmgine.bootstrap import ApplicationBootstrap, ApplicationConfig
     from llmgine.ui.cli.cli import EngineCLI
@@ -345,8 +353,8 @@ async def main():
         YesNoPrompt,
     )
 
-    from custom_tools.general.functions import store_fact
-    from custom_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
+    from org_tools.general.functions import store_fact
+    from org_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
 
     app = ApplicationBootstrap(ApplicationConfig(enable_console_handler=False))
     await app.bootstrap()

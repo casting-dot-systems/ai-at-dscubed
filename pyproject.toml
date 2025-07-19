@@ -4,17 +4,30 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "llmgine @ {root:parent:uri}/llmgine",
-    "notion>=0.0.28",
-]
+dependencies = ["llmgine", "notion>=0.0.28"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.uv.workspace]
+members = ["apps/*", "libs/*", "llmgine"]
 
+[tool.uv.sources]
+# Core dependency
+llmgine = { workspace = true }
 
+# Library packages  
+org_types = { workspace = true }
+org_tools = { workspace = true }
+brain = { workspace = true }
+
+# App packages
+darcy = { workspace = true }
+ai-discord-bot = { workspace = true }
+ai-discord-bot-v2 = { workspace = true }
+meeting-recorder-bot = { workspace = true }
+scrum-checkup = { workspace = true }
 
 [tool.hatch.metadata]
 allow-direct-references = true

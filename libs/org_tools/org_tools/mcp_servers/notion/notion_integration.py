@@ -3,13 +3,9 @@ Integration layer between MCP tools and notion_functions.py
 This file handles the conversion between MCP tool calls and your existing Notion functions.
 """
 
-import sys
-import os
 from typing import Any, Dict, List, Optional
 
-# Add the parent directory to the path to import notion_functions
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from notion_functions import get_all_users, get_active_tasks, create_task, update_task
+from org_tools.brain.notion.notion_functions import get_all_users, get_active_tasks, create_task, update_task
 
 
 async def get_notion_users() -> str:

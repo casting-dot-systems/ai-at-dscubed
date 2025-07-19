@@ -9,18 +9,6 @@ Responsibilities include:
 - System prompt
 """
 
-import sys
-import os
-
-
-# T
-
-# as these files are not installed as packages with uv we need to go to the parent directory
-
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
 from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import CommandResult
 from llmgine.llm import SessionID
@@ -31,9 +19,9 @@ from darcy.notion_crud_engine_v3 import (
     NotionCRUDEngineStatusEvent,
     NotionCRUDEngineV3,
 )
-from custom_tools.general.functions import store_fact
-from custom_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
-from custom_tools.brain.notion.notion_functions import (
+from org_tools.general.functions import store_fact
+from org_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
+from org_tools.brain.notion.notion_functions import (
     create_task,
     get_active_projects,
     get_active_tasks,
@@ -41,8 +29,8 @@ from custom_tools.brain.notion.notion_functions import (
     update_task,
 )
 
-from config import DiscordBotConfig
-from session_manager import SessionManager, SessionStatus
+from .config import DiscordBotConfig
+from .session_manager import SessionManager, SessionStatus
 
 
 class EngineManager:
