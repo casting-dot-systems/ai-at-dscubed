@@ -1,0 +1,958 @@
+{
+  "918affd4ce0d4b8eb7604d972fd24826": {
+    "object": "database",
+    "id": "918affd4-ce0d-4b8e-b760-4d972fd24826",
+    "cover": null,
+    "icon": {
+      "type": "external",
+      "external": {
+        "url": "https://www.notion.so/icons/groups_gray.svg"
+      }
+    },
+    "created_time": "2023-10-16T03:03:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "de0afb5c-030b-46c4-8cec-221730c12ebd"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "f746733c-66cc-4cbc-b553-c5d3f03ed240"
+    },
+    "last_edited_time": "2025-07-10T04:49:00.000Z",
+    "title": [
+      {
+        "type": "text",
+        "text": {
+          "content": "Events/Projects",
+          "link": null
+        },
+        "annotations": {
+          "bold": false,
+          "italic": false,
+          "strikethrough": false,
+          "underline": false,
+          "code": false,
+          "color": "default"
+        },
+        "plain_text": "Events/Projects",
+        "href": null
+      }
+    ],
+    "description": [],
+    "is_inline": true,
+    "properties": {
+      "Parent item": {
+        "id": "Aqe%5E",
+        "name": "Parent item",
+        "type": "relation",
+        "relation": {
+          "database_id": "918affd4-ce0d-4b8e-b760-4d972fd24826",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Sub-item",
+            "synced_property_id": "WjD%7B"
+          }
+        }
+      },
+      "Type": {
+        "id": "NU%5BI",
+        "name": "Type",
+        "type": "select",
+        "select": {
+          "options": [
+            {
+              "id": "c7af628b-b687-4c38-b8ac-8d3172cc58aa",
+              "name": "Note",
+              "color": "gray",
+              "description": null
+            },
+            {
+              "id": "79ab91d2-901a-493d-89c4-b5d5d70ab024",
+              "name": "Event",
+              "color": "brown",
+              "description": null
+            },
+            {
+              "id": "bf8121f3-e6aa-4c9c-a915-e8b21cb200a6",
+              "name": "Project",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "fa093f19-64cd-4f7c-ad2a-ed69650ede6d",
+              "name": "Admin",
+              "color": "pink",
+              "description": null
+            },
+            {
+              "id": "ad80bc15-002e-4bed-98a7-70d0ccbdd405",
+              "name": "Program",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "cf8a3888-75ee-4655-b5ed-a263b5515682",
+              "name": "Portfolio",
+              "color": "red",
+              "description": null
+            },
+            {
+              "id": "64eeb537-95b8-460d-a6a9-d240cb8f4f67",
+              "name": "User Story",
+              "color": "blue",
+              "description": null
+            },
+            {
+              "id": "077a77fa-991a-4970-8a53-1292623bacdb",
+              "name": "Epic",
+              "color": "orange",
+              "description": null
+            },
+            {
+              "id": "1780f00b-085f-4e65-9023-3406a8cb806f",
+              "name": "Sprint",
+              "color": "yellow",
+              "description": null
+            },
+            {
+              "id": "74bfc6fd-a381-48da-bab1-30460a010218",
+              "name": "Feature",
+              "color": "purple",
+              "description": null
+            }
+          ]
+        }
+      },
+      "Owner": {
+        "id": "WM%40J",
+        "name": "Owner",
+        "type": "people",
+        "people": {}
+      },
+      "Sub-item": {
+        "id": "WjD%7B",
+        "name": "Sub-item",
+        "type": "relation",
+        "relation": {
+          "database_id": "918affd4-ce0d-4b8e-b760-4d972fd24826",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Parent item",
+            "synced_property_id": "Aqe%5E"
+          }
+        }
+      },
+      "Allocated": {
+        "id": "%5Bgkp",
+        "name": "Allocated",
+        "type": "people",
+        "people": {}
+      },
+      "Team": {
+        "id": "%5BnRa",
+        "name": "Team",
+        "type": "relation",
+        "relation": {
+          "database_id": "139594e5-2bd9-47af-93ca-bb72a35742d2",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "💥 Events/Projects",
+            "synced_property_id": "EV%3C%5E"
+          }
+        }
+      },
+      "Text": {
+        "id": "%5DIxx",
+        "name": "Text",
+        "type": "rich_text",
+        "rich_text": {}
+      },
+      "Progress": {
+        "id": "%60A%3DT",
+        "name": "Progress",
+        "type": "select",
+        "select": {
+          "options": [
+            {
+              "id": "b10d8750-5430-4e9a-982b-0b9ef8f9268d",
+              "name": "On-Going",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "d40f9c53-6818-470e-805f-f6575431a933",
+              "name": "Proposal",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "8e86bc47-37fe-468d-9aa8-a69c016f387d",
+              "name": "Approved",
+              "color": "pink",
+              "description": null
+            },
+            {
+              "id": "55c457f3-6430-4616-b338-546fc7b03832",
+              "name": "Planning",
+              "color": "orange",
+              "description": null
+            },
+            {
+              "id": "6f35999d-6364-4409-8b2c-8844a00acc55",
+              "name": "In-Progress",
+              "color": "yellow",
+              "description": null
+            },
+            {
+              "id": "2576eecb-5171-4de5-8c11-76910ec79be2",
+              "name": "Finished",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "ab281fe4-971c-4034-8a49-529ff2751844",
+              "name": "Cancelled",
+              "color": "gray",
+              "description": null
+            },
+            {
+              "id": "a9d94b23-8214-4b80-81e4-50cba18d8ca5",
+              "name": "Archive",
+              "color": "brown",
+              "description": null
+            },
+            {
+              "id": "22b284af-d310-4c94-bd42-df558fe4bbcd",
+              "name": "Paused",
+              "color": "purple",
+              "description": null
+            },
+            {
+              "id": "38e64318-438c-4615-acb6-384c3e02ea9e",
+              "name": "To-Review",
+              "color": "red",
+              "description": null
+            },
+            {
+              "id": "975ef4c7-51b8-4e05-8bb7-0cef7586f81f",
+              "name": "Complete",
+              "color": "blue",
+              "description": null
+            }
+          ]
+        }
+      },
+      "Priority": {
+        "id": "d%3FzE",
+        "name": "Priority",
+        "type": "select",
+        "select": {
+          "options": [
+            {
+              "id": "a209e3cd-80e9-45ce-a0b9-953b0c07d20f",
+              "name": "⭐",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "5b988308-6970-4481-8b14-53c2aae93d88",
+              "name": "⭐⭐",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "1a525a9b-22be-4519-bc15-be2fc6ac08da",
+              "name": "⭐⭐⭐",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "d6115443-adc4-4e39-bcb7-d62f20b4b7e4",
+              "name": "⭐⭐⭐⭐",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "0c92bbee-dbdd-413a-853a-ac8818618c7c",
+              "name": "⭐⭐⭐⭐⭐",
+              "color": "default",
+              "description": null
+            }
+          ]
+        }
+      },
+      "Description": {
+        "id": "gETx",
+        "name": "Description",
+        "type": "rich_text",
+        "rich_text": {}
+      },
+      "Due Date(s)": {
+        "id": "qZiF",
+        "name": "Due Date(s)",
+        "type": "date",
+        "date": {}
+      },
+      "Documents": {
+        "id": "r%3FOA",
+        "name": "Documents",
+        "type": "relation",
+        "relation": {
+          "database_id": "55909df8-1f56-40c4-9327-bab99b4f97f5",
+          "type": "single_property",
+          "single_property": {}
+        }
+      },
+      "Tasks": {
+        "id": "t%3FT%3A",
+        "name": "Tasks",
+        "type": "relation",
+        "relation": {
+          "database_id": "ed8ba37a-719a-47d7-a796-c2d373c794b9",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Event/Project",
+            "synced_property_id": "x_Ur"
+          }
+        }
+      },
+      "Location": {
+        "id": "wemP",
+        "name": "Location",
+        "type": "rich_text",
+        "rich_text": {}
+      },
+      "Name": {
+        "id": "title",
+        "name": "Name",
+        "type": "title",
+        "title": {}
+      }
+    },
+    "parent": {
+      "type": "page_id",
+      "page_id": "4d0f0c81-b745-4ff9-a5f1-f41f70f02f7b"
+    },
+    "url": "https://www.notion.so/918affd4ce0d4b8eb7604d972fd24826",
+    "public_url": null,
+    "archived": false,
+    "in_trash": false,
+    "request_id": "87e76cc6-0a09-43ba-b09b-594218db2b62"
+  },
+  "ed8ba37a719a47d7a796c2d373c794b9": {
+    "object": "database",
+    "id": "ed8ba37a-719a-47d7-a796-c2d373c794b9",
+    "cover": null,
+    "icon": {
+      "type": "emoji",
+      "emoji": "✔️"
+    },
+    "created_time": "2023-10-16T03:03:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "de0afb5c-030b-46c4-8cec-221730c12ebd"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "314ad6eb-dc2e-49b5-8801-4afa0360f39b"
+    },
+    "last_edited_time": "2025-07-15T02:03:00.000Z",
+    "title": [
+      {
+        "type": "text",
+        "text": {
+          "content": "Meetings and Tasks",
+          "link": null
+        },
+        "annotations": {
+          "bold": false,
+          "italic": false,
+          "strikethrough": false,
+          "underline": false,
+          "code": false,
+          "color": "default"
+        },
+        "plain_text": "Meetings and Tasks",
+        "href": null
+      }
+    ],
+    "description": [],
+    "is_inline": true,
+    "properties": {
+      "Due Date": {
+        "id": "%3Ac%5Dl",
+        "name": "Due Date",
+        "type": "formula",
+        "formula": {
+          "expression": "dateEnd({{notion:block_property:JiOy:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}})"
+        }
+      },
+      "Status": {
+        "id": "%3D%3DBK",
+        "name": "Status",
+        "type": "status",
+        "status": {
+          "options": [
+            {
+              "id": "e07b4872-6baf-464e-8ad9-abf768286e49",
+              "name": "Not started",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "80d361e4-d127-4e1b-b7bf-06e07e2b7890",
+              "name": "In progress",
+              "color": "blue",
+              "description": null
+            },
+            {
+              "id": "rb_~",
+              "name": "Blocked",
+              "color": "yellow",
+              "description": null
+            },
+            {
+              "id": "Q=S~",
+              "name": "To Review",
+              "color": "blue",
+              "description": null
+            },
+            {
+              "id": "`acO",
+              "name": "Done",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "aAlA",
+              "name": "Archive",
+              "color": "purple",
+              "description": null
+            }
+          ],
+          "groups": [
+            {
+              "id": "a8e2453b-2ea1-4bda-8b30-98b654495520",
+              "name": "To-do",
+              "color": "gray",
+              "option_ids": [
+                "e07b4872-6baf-464e-8ad9-abf768286e49"
+              ]
+            },
+            {
+              "id": "56d8e4ea-44db-47b3-af72-256072694fc0",
+              "name": "In progress",
+              "color": "blue",
+              "option_ids": [
+                "Q=S~",
+                "80d361e4-d127-4e1b-b7bf-06e07e2b7890",
+                "rb_~",
+                "`acO"
+              ]
+            },
+            {
+              "id": "93eee4fa-5dfb-4f31-b43a-07b80d6d2a09",
+              "name": "Complete",
+              "color": "green",
+              "option_ids": [
+                "aAlA"
+              ]
+            }
+          ]
+        }
+      },
+      "Blocking": {
+        "id": "%3DBnC",
+        "name": "Blocking",
+        "type": "relation",
+        "relation": {
+          "database_id": "ed8ba37a-719a-47d7-a796-c2d373c794b9",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Blocked by",
+            "synced_property_id": "NUHE"
+          }
+        }
+      },
+      "Due Dates": {
+        "id": "JiOy",
+        "name": "Due Dates",
+        "type": "date",
+        "date": {}
+      },
+      "Parent task": {
+        "id": "LA_%5E",
+        "name": "Parent task",
+        "type": "relation",
+        "relation": {
+          "database_id": "ed8ba37a-719a-47d7-a796-c2d373c794b9",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Sub-task",
+            "synced_property_id": "YGx%5B"
+          }
+        }
+      },
+      "Blocked by": {
+        "id": "NUHE",
+        "name": "Blocked by",
+        "type": "relation",
+        "relation": {
+          "database_id": "ed8ba37a-719a-47d7-a796-c2d373c794b9",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Blocking",
+            "synced_property_id": "%3DBnC"
+          }
+        }
+      },
+      "Last edited time": {
+        "id": "QUy%5B",
+        "name": "Last edited time",
+        "type": "last_edited_time",
+        "last_edited_time": {}
+      },
+      "Sub-task": {
+        "id": "YGx%5B",
+        "name": "Sub-task",
+        "type": "relation",
+        "relation": {
+          "database_id": "ed8ba37a-719a-47d7-a796-c2d373c794b9",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Parent task",
+            "synced_property_id": "LA_%5E"
+          }
+        }
+      },
+      "In Charge": {
+        "id": "%5Ca%3Cy",
+        "name": "In Charge",
+        "type": "people",
+        "people": {}
+      },
+      "Is Due ": {
+        "id": "exOc",
+        "name": "Is Due ",
+        "type": "formula",
+        "formula": {
+          "expression": "if([\"Done\", \"Archive\"].includes({{notion:block_property:%3D%3DBK:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}), \"\", if(empty({{notion:block_property:JiOy:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}),\"🟣 Unset Date\",if(dateAdd({{notion:block_property:%3Ac%5Dl:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}, 1, \"days\") < now(), \"🔴\" + \" Due: \" + format(dateBetween(dateAdd({{notion:block_property:%3Ac%5Dl:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}, 1, \"days\"), now(), \"days\")+\" Days\"), if(and(date({{notion:block_property:%3Ac%5Dl:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}) == date(now()), and(year({{notion:block_property:%3Ac%5Dl:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}) == year(now()), month({{notion:block_property:%3Ac%5Dl:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}) - 1 == month(now()) - 1)), \"🟡\" + \" Due: \" + format(dateBetween(dateAdd({{notion:block_property:%3Ac%5Dl:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}, 1, \"days\"), now(), \"days\")+\" Days\"), \"🟢\" + \" Due: \" + format(dateBetween(dateAdd({{notion:block_property:%3Ac%5Dl:00000000-0000-0000-0000-000000000000:7f557132-caa0-4d17-bd58-19ccdef89e6b}}, 1, \"days\"), now(), \"days\")+\" Days\")))))"
+        }
+      },
+      "Task Progress": {
+        "id": "oP%7BD",
+        "name": "Task Progress",
+        "type": "rich_text",
+        "rich_text": {}
+      },
+      "Last edited by": {
+        "id": "tU_i",
+        "name": "Last edited by",
+        "type": "last_edited_by",
+        "last_edited_by": {}
+      },
+      "Event/Project": {
+        "id": "x_Ur",
+        "name": "Event/Project",
+        "type": "relation",
+        "relation": {
+          "database_id": "918affd4-ce0d-4b8e-b760-4d972fd24826",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Tasks",
+            "synced_property_id": "t%3FT%3A"
+          }
+        }
+      },
+      "Team": {
+        "id": "zwK%3F",
+        "name": "Team",
+        "type": "relation",
+        "relation": {
+          "database_id": "139594e5-2bd9-47af-93ca-bb72a35742d2",
+          "type": "single_property",
+          "single_property": {}
+        }
+      },
+      "Name": {
+        "id": "title",
+        "name": "Name",
+        "type": "title",
+        "title": {}
+      },
+      "Priority": {
+        "id": "notion%3A%2F%2Ftasks%2Fpriority_property",
+        "name": "Priority",
+        "type": "select",
+        "select": {
+          "options": [
+            {
+              "id": "priority_low",
+              "name": "Low",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "priority_medium",
+              "name": "Medium",
+              "color": "yellow",
+              "description": null
+            },
+            {
+              "id": "priority_high",
+              "name": "High",
+              "color": "red",
+              "description": null
+            }
+          ]
+        }
+      },
+      "Description": {
+        "id": "notion%3A%2F%2Ftasks%2Fdescription_property",
+        "name": "Description",
+        "type": "rich_text",
+        "rich_text": {}
+      }
+    },
+    "parent": {
+      "type": "page_id",
+      "page_id": "4d0f0c81-b745-4ff9-a5f1-f41f70f02f7b"
+    },
+    "url": "https://www.notion.so/ed8ba37a719a47d7a796c2d373c794b9",
+    "public_url": null,
+    "archived": false,
+    "in_trash": false,
+    "request_id": "54b48803-b8a7-4392-836d-34c163f5867a"
+  },
+  "139594e5-2bd9-47af-93ca-bb72a35742d2": {
+    "object": "database",
+    "id": "139594e5-2bd9-47af-93ca-bb72a35742d2",
+    "cover": null,
+    "icon": {
+      "type": "emoji",
+      "emoji": "🛣️"
+    },
+    "created_time": "2023-10-16T03:03:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "de0afb5c-030b-46c4-8cec-221730c12ebd"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "f746733c-66cc-4cbc-b553-c5d3f03ed240"
+    },
+    "last_edited_time": "2025-07-04T11:44:00.000Z",
+    "title": [
+      {
+        "type": "text",
+        "text": {
+          "content": "Teams",
+          "link": null
+        },
+        "annotations": {
+          "bold": false,
+          "italic": false,
+          "strikethrough": false,
+          "underline": false,
+          "code": false,
+          "color": "default"
+        },
+        "plain_text": "Teams",
+        "href": null
+      }
+    ],
+    "description": [],
+    "is_inline": true,
+    "properties": {
+      "💥 Events/Projects": {
+        "id": "EV%3C%5E",
+        "name": "💥 Events/Projects",
+        "type": "relation",
+        "relation": {
+          "database_id": "918affd4-ce0d-4b8e-b760-4d972fd24826",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Team",
+            "synced_property_id": "%5BnRa"
+          }
+        }
+      },
+      "Cover": {
+        "id": "Jj%7B%3A",
+        "name": "Cover",
+        "type": "files",
+        "files": {}
+      },
+      "Person": {
+        "id": "PhyZ",
+        "name": "Person",
+        "type": "people",
+        "people": {}
+      },
+      "Committee": {
+        "id": "qYoJ",
+        "name": "Committee",
+        "type": "relation",
+        "relation": {
+          "database_id": "f56fb021-8a4b-4171-8ac6-10e6f1aa06cb",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Team",
+            "synced_property_id": "CLiE"
+          }
+        }
+      },
+      "Document": {
+        "id": "yd%7D%3B",
+        "name": "Document",
+        "type": "relation",
+        "relation": {
+          "database_id": "55909df8-1f56-40c4-9327-bab99b4f97f5",
+          "type": "single_property",
+          "single_property": {}
+        }
+      },
+      "Name": {
+        "id": "title",
+        "name": "Name",
+        "type": "title",
+        "title": {}
+      }
+    },
+    "parent": {
+      "type": "block_id",
+      "block_id": "5a934de3-57b6-4b1e-8c2a-6c5c8920cb78"
+    },
+    "url": "https://www.notion.so/139594e52bd947af93cabb72a35742d2",
+    "public_url": null,
+    "archived": false,
+    "in_trash": false,
+    "request_id": "1e00c712-dfbe-4b28-866d-18887ce85461"
+  },
+  "55909df8-1f56-40c4-9327-bab99b4f97f5": {
+    "object": "database",
+    "id": "55909df8-1f56-40c4-9327-bab99b4f97f5",
+    "cover": null,
+    "icon": {
+      "type": "emoji",
+      "emoji": "📁"
+    },
+    "created_time": "2024-03-15T04:41:00.000Z",
+    "created_by": {
+      "object": "user",
+      "id": "de0afb5c-030b-46c4-8cec-221730c12ebd"
+    },
+    "last_edited_by": {
+      "object": "user",
+      "id": "f746733c-66cc-4cbc-b553-c5d3f03ed240"
+    },
+    "last_edited_time": "2025-07-04T07:23:00.000Z",
+    "title": [
+      {
+        "type": "text",
+        "text": {
+          "content": "Documents",
+          "link": null
+        },
+        "annotations": {
+          "bold": false,
+          "italic": false,
+          "strikethrough": false,
+          "underline": false,
+          "code": false,
+          "color": "default"
+        },
+        "plain_text": "Documents",
+        "href": null
+      }
+    ],
+    "description": [],
+    "is_inline": true,
+    "properties": {
+      "Events/Projects": {
+        "id": "%3BLwL",
+        "name": "Events/Projects",
+        "type": "relation",
+        "relation": {
+          "database_id": "918affd4-ce0d-4b8e-b760-4d972fd24826",
+          "type": "single_property",
+          "single_property": {}
+        }
+      },
+      "Parent item": {
+        "id": "%3D%7D%5Ew",
+        "name": "Parent item",
+        "type": "relation",
+        "relation": {
+          "database_id": "55909df8-1f56-40c4-9327-bab99b4f97f5",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Sub-item",
+            "synced_property_id": "y%3DUn"
+          }
+        }
+      },
+      "Last edited by": {
+        "id": "H%5CdT",
+        "name": "Last edited by",
+        "type": "last_edited_by",
+        "last_edited_by": {}
+      },
+      "Google Drive File": {
+        "id": "IVfp",
+        "name": "Google Drive File",
+        "type": "relation",
+        "relation": {
+          "database_id": "1243edbc-d9bd-49b4-839a-7a2b953034ce",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Related to Documents (Google Drive File)",
+            "synced_property_id": "C%7CYD"
+          }
+        }
+      },
+      "Person": {
+        "id": "%5EV%3AS",
+        "name": "Person",
+        "type": "people",
+        "people": {}
+      },
+      "Contributors": {
+        "id": "dJG%60",
+        "name": "Contributors",
+        "type": "people",
+        "people": {}
+      },
+      "Team": {
+        "id": "fy%3BC",
+        "name": "Team",
+        "type": "relation",
+        "relation": {
+          "database_id": "139594e5-2bd9-47af-93ca-bb72a35742d2",
+          "type": "single_property",
+          "single_property": {}
+        }
+      },
+      "Pinned": {
+        "id": "p%3Ab%3A",
+        "name": "Pinned",
+        "type": "checkbox",
+        "checkbox": {}
+      },
+      "Owned By": {
+        "id": "u%7Bm%40",
+        "name": "Owned By",
+        "type": "people",
+        "people": {}
+      },
+      "Sub-item": {
+        "id": "y%3DUn",
+        "name": "Sub-item",
+        "type": "relation",
+        "relation": {
+          "database_id": "55909df8-1f56-40c4-9327-bab99b4f97f5",
+          "type": "dual_property",
+          "dual_property": {
+            "synced_property_name": "Parent item",
+            "synced_property_id": "%3D%7D%5Ew"
+          }
+        }
+      },
+      "Name": {
+        "id": "title",
+        "name": "Name",
+        "type": "title",
+        "title": {}
+      },
+      "In Charge": {
+        "id": "3b64f163-4372-4ad0-b0b1-3ab006c0eb8d",
+        "name": "In Charge",
+        "type": "people",
+        "people": {}
+      },
+      "Status": {
+        "id": "7c82316a-6e97-420b-b471-12b462a1944b",
+        "name": "Status",
+        "type": "status",
+        "status": {
+          "options": [
+            {
+              "id": "e07b4872-6baf-464e-8ad9-abf768286e49",
+              "name": "Not started",
+              "color": "default",
+              "description": null
+            },
+            {
+              "id": "80d361e4-d127-4e1b-b7bf-06e07e2b7890",
+              "name": "In progress",
+              "color": "blue",
+              "description": null
+            },
+            {
+              "id": "rb_~",
+              "name": "Blocked",
+              "color": "yellow",
+              "description": null
+            },
+            {
+              "id": "`acO",
+              "name": "Done",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "^vtK",
+              "name": "Approved",
+              "color": "green",
+              "description": null
+            },
+            {
+              "id": "aAlA",
+              "name": "Archive",
+              "color": "purple",
+              "description": null
+            }
+          ],
+          "groups": [
+            {
+              "id": "a8e2453b-2ea1-4bda-8b30-98b654495520",
+              "name": "To-do",
+              "color": "gray",
+              "option_ids": [
+                "e07b4872-6baf-464e-8ad9-abf768286e49"
+              ]
+            },
+            {
+              "id": "56d8e4ea-44db-47b3-af72-256072694fc0",
+              "name": "In progress",
+              "color": "blue",
+              "option_ids": [
+                "80d361e4-d127-4e1b-b7bf-06e07e2b7890",
+                "rb_~",
+                "`acO"
+              ]
+            },
+            {
+              "id": "93eee4fa-5dfb-4f31-b43a-07b80d6d2a09",
+              "name": "Complete",
+              "color": "green",
+              "option_ids": [
+                "^vtK",
+                "aAlA"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "parent": {
+      "type": "page_id",
+      "page_id": "4d0f0c81-b745-4ff9-a5f1-f41f70f02f7b"
+    },
+    "url": "https://www.notion.so/55909df81f5640c49327bab99b4f97f5",
+    "public_url": null,
+    "archived": false,
+    "in_trash": false,
+    "request_id": "f4cce3d0-1b87-445a-a743-1845e4c32ab2"
+  }
+}
