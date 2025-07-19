@@ -6,5 +6,5 @@ CREATE TABLE committee (
     email VARCHAR(100) UNIQUE NOT NULL,
     join_date DATE NOT NULL,
     committee_role VARCHAR(100),
-    status VARCHAR(20) DEFAULT 'active'
+    status VARCHAR(20)
 ); 
