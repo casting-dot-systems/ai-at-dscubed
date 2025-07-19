@@ -1,0 +1,81 @@
+00:00:01 - Alex: So for today's meeting, we have updates on three projects: Even's Marathon, Nathan's Web, and PJ's Database.
+
+00:00:05 - Megan: Let's start with Even's Marathon—the city permit application is still pending but should be approved by next week.
+
+00:00:10 - Lucas: And I've been working on the sponsorship outreach, three local businesses agreed to provide water stations.
+
+00:00:15 - Alex: That's great, but we still need a main sponsor for the finish line.
+
+00:00:20 - Ryan: Speaking of sponsors, I have an update on Nathan's Web project—the payment gateway integration is almost done.
+
+00:00:25 - Olivia: But Megan noticed the text overlay on the homepage is hard to read on mobile.
+
+00:00:30 - Megan: Yeah, we need to increase the contrast and test with different font weights.
+
+00:00:35 - Alex: Back to Even's Marathon—Sophie brought up volunteer recruitment, we have 25 signed up but need at least 40.
+
+00:00:40 - Lucas: I suggested reaching out to the university's running club for more volunteers.
+
+00:00:45 - Ryan: And for Nathan's Web, I'm fixing a bug where the post dates display in the wrong timezone.
+
+00:00:50 - Olivia: Also, the contact form is getting spam, so I suggested adding a simple captcha.
+
+00:00:55 - Megan: For PJ's Database, I'm working on optimizing the queries for the analytics dashboard.
+
+00:01:00 - Alex: And I found a bug where duplicate records appear after batch imports.
+
+00:01:05 - Lucas: I'll implement a unique constraint for that.
+
+00:01:10 - Ryan: For Even's Marathon, the 10k loop is finalized, but the 5k needs a detour because of roadworks.
+
+00:01:15 - Olivia: Maya will check with the city about alternate routes.
+
+00:01:20 - Megan: And for Nathan's Web, most users liked the new navigation bar, but a few found the dropdown menus confusing.
+
+00:01:25 - Alex: Lucas proposed adding icons to the dropdowns for clarity.
+
+00:01:30 - Ryan: For PJ's Database, I'm testing different index strategies to speed up report generation.
+
+00:01:35 - Lucas: And I'll coordinate with DevOps to enable encryption at rest.
+
+00:01:40 - Megan: There was a brief debate about t-shirt colors for Even's Marathon—Maya prefers blue, Lucas votes for green.
+
+00:01:45 - Olivia: We decided to send a poll to all registered runners.
+
+00:01:50 - Alex: For Nathan's Web, Megan wants to add a timeline of project milestones to the about page.
+
+00:01:55 - Ryan: And I'll draft the content for that.
+
+00:02:00 - Lucas: For PJ's Database, some analysts have more access than they should, so Megan will review the current roles.
+
+00:02:05 - Megan: And I want to automate nightly backups.
+
+00:02:10 - Ryan: I'll test the restore process this week.
+
+00:02:15 - Alex: For Even's Marathon, Olivia mentioned the need for a medical tent and first aid volunteers.
+
+00:02:20 - Lucas: Sophie will contact the local clinic.
+
+00:02:25 - Megan: For Nathan's Web, I'm working on the RSS feed integration.
+
+00:02:30 - Ryan: And for PJ's Database, I'll write scripts to validate data integrity before and after migration.
+
+00:02:35 - Alex: I'll prepare a rollback plan in case anything goes wrong.
+
+00:02:40 - Olivia: We also need better monitoring for PJ's Database—I suggest setting up alerts for slow queries.
+
+00:02:45 - Lucas: I'll look into integrating with the team's Slack channel.
+
+00:02:50 - Megan: For Even's Marathon, we need to test the mobile version of the registration website.
+
+00:02:55 - Ryan: And for Nathan's Web, we should prioritize query optimization and add CSV export to the backlog.
+
+00:03:00 - Alex: So let's review action items: for Even's Marathon, Maya to follow up on permits and route, Liam to finish payment integration.
+
+00:03:05 - Megan: For Nathan's Web, Alex to tweak the hero text and review navigation icons, Megan to finish RSS and start the timeline.
+
+00:03:10 - Ryan: For PJ's Database, Alex to finalize schema and review constraints, Megan to optimize queries and set up backups.
+
+00:03:15 - Olivia: And we scheduled follow-up meetings for all three projects next week.
+
+00:03:20 - Lucas: Finally, we joked about how many times we've rewritten PJ's Database and promised to bring snacks to the next meeting. 

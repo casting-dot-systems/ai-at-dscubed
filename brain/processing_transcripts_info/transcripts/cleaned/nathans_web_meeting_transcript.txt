@@ -4,7 +4,7 @@ Jamie: Yeah, I got you. Sorry, my dog was barking.
 
 Alex: So, about the homepage, did you get a chance to look at the wireframes?
 
-Jamie: Yeah, I did, but I think the header is too big. Or maybe it’s just my screen. Also, the colors… do we really want that much blue?
+Jamie: Yeah, I did, but I think the header is too big. Or maybe it’s just my screen. Also, the colors… Do we really want that much blue?
 
 Alex: Oh, yeah, the blue. I was just using the default, but we can totally change it. Wait, hold on, my phone’s ringing—
 
@@ -18,7 +18,7 @@ Alex: Yeah, lighter is good. Also, the blog section—I couldn’t figure out ho
 
 Jamie: Did you pull the latest from Git? I pushed a fix last night, I think. Or maybe it was this morning? Time is fake.
 
-Alex: Haha, yeah, I’ll check. Oh, and the about page—should we put Nathan’s photo or just a cartoon?
+Alex: Haha, yeah. I’ll check. Oh, and the about page—should we put Nathan’s photo or just a cartoon?
 
 Jamie: Cartoon, for sure. Nathan hates his photos. Wait, did you see the email from him? He wants the site live by Friday.
 
@@ -40,7 +40,7 @@ Alex: Later.
 
 Alex: Hey, back again. So, I tried to fix the header, but now the nav bar is floating in the middle of the page. No idea why. Did you change something in the CSS grid?
 
-Jamie: Maybe? I was messing with the container class, but I thought it only affected the sidebar.
+Jamie: Uh, maybe? I was messing with the container class, but I thought it only affected the sidebar.
 
 Alex: Well, it’s definitely floating. Also, the logo disappeared.
 
@@ -60,25 +60,23 @@ Jamie: Haha, yeah, that’ll stop the bots. Or confuse the users.
 
 Alex: True.
 
-[interruption: Someone joins the call]
+[Someone joins the call]
 
-Alex: Oh, hey, is that Nathan?
+Jamie: Oh, hey, is that Nathan?
 
-Jamie: No, false alarm, just my phone connecting to Bluetooth.
+Alex: No, false alarm, just my phone connecting to Bluetooth.
 
-Alex: Classic. Anyway, did you see the Figma update? The mobile view is all squished.
+Jamie: Classic. Anyway, did you see the Figma update? The mobile view is all squished.
 
-Jamie: Yeah, I noticed. I think the flexbox isn’t wrapping right. I’ll take a look. Also, do you want to grab coffee after this? I need caffeine.
+Alex: Yeah, I noticed. I think the flexbox isn’t wrapping right. I’ll take a look. Also, do you want to grab coffee after this? I need caffeine.
 
-Alex: Yes, please. But let’s finish the about page first.
+Jamie: Yes, please. But let’s finish the about page first.
 
-Jamie: Agreed. Oh, and can you review my PR? I left some comments on your last commit too.
+Alex: Agreed. Oh, and can you review my PR? I left some comments on your last commit too.
 
-Alex: Cool, I’ll check. By the way, did you ever fix that weird bug with the dark mode toggle?
+Jamie: Cool, I’ll check. By the way, did you ever fix that weird bug with the dark mode toggle?
 
-Jamie: Not yet. It keeps switching back to light mode when you refresh. I think it’s a localStorage thing.
-
-Alex: I’ll debug it after lunch.
+Alex: Not yet. It keeps switching back to light mode when you refresh. I think it’s a localStorage thing. I’ll debug it after lunch.
 
 Jamie: Sounds good.
 
@@ -88,6 +86,6 @@ Alex: Okay, I’m heading out for coffee. Ping me if you break the site.
 
 Jamie: Will do. Don’t forget to push your changes!
 
-Alex: Already did. See you.
+Alex: Already did. See ya.
 
 Jamie: Later.

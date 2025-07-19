@@ -1,0 +1,81 @@
+Alex: so for today's meeting, we have updates on three projects: even's marathon, nathan's web, and pj's database
+
+Megan: let's start with even's marathon—the city permit application is still pending but should be approved by next week
+
+Lucas: and i've been working on the sponsorship outreach, three local businesses agreed to provide water stations
+
+Alex: that's great, but we still need a main sponsor for the finish line
+
+Ryan: speaking of sponsors, i have an update on nathan's web project—the payment gateway integration is almost done
+
+Olivia: but megan noticed the text overlay on the homepage is hard to read on mobile
+
+Megan: yeah, we need to increase the contrast and test with different font weights
+
+Alex: back to even's marathon—sophie brought up volunteer recruitment, we have 25 signed up but need at least 40
+
+Lucas: i suggested reaching out to the university's running club for more volunteers
+
+Ryan: and for nathan's web, i'm fixing a bug where the post dates display in the wrong timezone
+
+Olivia: also, the contact form is getting spam, so i suggested adding a simple captcha
+
+Megan: for pj's database, i'm working on optimizing the queries for the analytics dashboard
+
+Alex: and i found a bug where duplicate records appear after batch imports
+
+Lucas: i'll implement a unique constraint for that
+
+Ryan: for even's marathon, the 10k loop is finalized, but the 5k needs a detour because of roadworks
+
+Olivia: maya will check with the city about alternate routes
+
+Megan: and for nathan's web, most users liked the new navigation bar, but a few found the dropdown menus confusing
+
+Alex: lucas proposed adding icons to the dropdowns for clarity
+
+Ryan: for pj's database, i'm testing different index strategies to speed up report generation
+
+Lucas: and i'll coordinate with devops to enable encryption at rest
+
+Megan: there was a brief debate about t-shirt colors for even's marathon—maya prefers blue, lucas votes for green
+
+Olivia: we decided to send a poll to all registered runners
+
+Alex: for nathan's web, megan wants to add a timeline of project milestones to the about page
+
+Ryan: and i'll draft the content for that
+
+Lucas: for pj's database, some analysts have more access than they should, so megan will review the current roles
+
+Megan: and i want to automate nightly backups
+
+Ryan: i'll test the restore process this week
+
+Alex: for even's marathon, olivia mentioned the need for a medical tent and first aid volunteers
+
+Lucas: sophie will contact the local clinic
+
+Megan: for nathan's web, i'm working on the rss feed integration
+
+Ryan: and for pj's database, i'll write scripts to validate data integrity before and after migration
+
+Alex: i'll prepare a rollback plan in case anything goes wrong
+
+Olivia: we also need better monitoring for pj's database—i suggest setting up alerts for slow queries
+
+Lucas: i'll look into integrating with the team's slack channel
+
+Megan: for even's marathon, we need to test the mobile version of the registration website
+
+Ryan: and for nathan's web, we should prioritize query optimization and add csv export to the backlog
+
+Alex: so let's review action items: for even's marathon, maya to follow up on permits and route, liam to finish payment integration
+
+Megan: for nathan's web, alex to tweak the hero text and review navigation icons, megan to finish rss and start the timeline
+
+Ryan: for pj's database, alex to finalize schema and review constraints, megan to optimize queries and set up backups
+
+Olivia: and we scheduled follow-up meetings for all three projects next week
+
+Lucas: finally, we joked about how many times we've rewritten pj's database and promised to bring snacks to the next meeting 
