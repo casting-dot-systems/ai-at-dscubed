@@ -15,7 +15,6 @@ import uuid
 import json
 
 from llmgine.llm.engine.engine import Engine
-from llmgine.llm.models.model import Model
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.bus.bus import MessageBus
 from llmgine.messages.events import Event
@@ -86,15 +85,12 @@ class FactProcessingEngineToolResultEvent(Event):
 class FactProcessingEngine(Engine):
     def __init__(
         self,
-        model: Model,
         system_prompt: Optional[str] = None,
         session_id: Optional[str] = None,
     ):
-        self.model = model
         self.system_prompt = system_prompt
         self.session_id = session_id
         self.message_bus = MessageBus()
-        self.engine_id = str(uuid.uuid4())
 
         # Create tightly coupled components - pass the simple engine
         self.context_manager = SimpleChatHistory(
@@ -257,10 +253,10 @@ class FactProcessingEngine(Engine):
 
 
 async def use_fact_processing_engine(
-    prompt: str, model: Model, system_prompt: Optional[str] = None
+    prompt: str, system_prompt: Optional[str] = None
 ):
     session_id = str(uuid.uuid4())
-    engine = FactProcessingEngine(model, system_prompt, session_id)
+    engine = FactProcessingEngine(system_prompt, session_id)
     return await engine.execute(prompt)
 
 
@@ -268,8 +264,6 @@ async def main():
     from llmgine.ui.cli.cli import EngineCLI
     from llmgine.ui.cli.components import EngineResultComponent, ToolComponent
     from llmgine.bootstrap import ApplicationConfig, ApplicationBootstrap
-    from llmgine.llm.models.openai_models import Gpt41Mini
-    from llmgine.llm.providers.providers import Providers
 
     config = ApplicationConfig(enable_console_handler=False)
     bootstrap = ApplicationBootstrap(config)
@@ -277,7 +271,6 @@ async def main():
 
     # Initialize the engine
     engine = FactProcessingEngine(
-        model=Gpt41Mini(Providers.OPENAI),
         system_prompt=SYSTEM_PROMPT,
         session_id="test",
     )

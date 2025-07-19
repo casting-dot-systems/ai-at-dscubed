@@ -41,8 +41,8 @@ from custom_tools.brain.notion.notion_functions import (
     update_task,
 )
 
-from config import DiscordBotConfig
-from session_manager import SessionManager, SessionStatus
+from .config import DiscordBotConfig
+from .session_manager import SessionManager, SessionStatus
 
 
 class EngineManager:

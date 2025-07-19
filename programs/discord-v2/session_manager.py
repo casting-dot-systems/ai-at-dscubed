@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import discord
 from discord.ext import commands
 
-from components import YesNoView
+from .components import YesNoView
 
 
 # Session status types

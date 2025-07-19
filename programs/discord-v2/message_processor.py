@@ -19,8 +19,8 @@ from custom_tools.brain.notion.data import (
     get_user_from_discord_id,
 )
 
-from config import DiscordBotConfig
-from session_manager import SessionManager
+from .config import DiscordBotConfig
+from .session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
 

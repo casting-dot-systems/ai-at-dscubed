@@ -20,6 +20,7 @@ class ConnectionState(Enum):
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
+    RECONNECTING = "reconnecting"
 
 class WebSocketMessage(BaseModel):
     """Standardized WebSocket message format"""
@@ -44,7 +45,9 @@ class WebSocketAPIClient:
         self.config = WebSocketConfig.from_env()
         self.client = httpx.AsyncClient()
         self.session_id: Optional[str] = None
-        
+        self._reconnect_delay = 1.0
+        self._max_reconnect_delay = 30.0
+
     async def create_session(self) -> SessionInfo:
         """Create a new session with the backend"""
         try:
@@ -109,7 +112,7 @@ class WebSocketAPIClient:
             raise
 
     
-    async def use_websocket(self, message_type: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def use_websocket(self, message_type: str, data: Dict[str, Any]) -> Optional[WebSocketMessage]:
         """Send a message through WebSocket and wait for response"""
         if not self.session_info:
             raise Exception("No active session. Call create_session() first.")
@@ -122,12 +125,13 @@ class WebSocketAPIClient:
                 type=message_type,
                 data=data,
             )
-            
+            print(f"Sending message: {message}")
             await self._send_message(message)
-            
+            print(f"Waiting for response: {message_type}_res")
             # Wait for response
-            response = await self._wait_for_response(f"{message_type}_response", timeout=self.config.message_timeout)
-            return response.data if response else None
+            response = await self._wait_for_response(f"{message_type}_res", timeout=self.config.message_timeout)
+            print(f"Received response: {response}")
+            return response if response else None
             
         except Exception as e:
             logger.error(f"Error using WebSocket: {e}")
@@ -163,6 +167,24 @@ class WebSocketAPIClient:
         await self._disconnect()
         logger.info("WebSocket client closed")
     
+    async def _connect(self):
+        """Connect to WebSocket"""
+        if self.websocket:
+            
+            # Connect to WebSocket with the session ID
+            ws_url = f"{self.config.ws_url}/api/sessions/{self.session_id}/ws"
+            
+            self.websocket = await websockets.connect(ws_url)
+            self.state = ConnectionState.CONNECTED
+
+            await self.start_monitoring()
+            response = await self._wait_for_response("connected", timeout=self.config.message_timeout)
+            if response and response.type == "connected":
+                logger.info("WebSocket connected")
+            else:
+                raise Exception("Failed to connect to WebSocket")
+        else:
+            raise Exception("WebSocket not connected")
 
     async def _disconnect(self):
         """Close WebSocket connection"""
@@ -245,7 +267,7 @@ class WebSocketAPIClient:
                 # Try to get message from queue
                 try:
                     message = await asyncio.wait_for(self.response_queue.get(), timeout=1.0)
-                    if message.type == expected_type:
+                    if message.type == expected_type or message.type == "error":
                         return message
                 except asyncio.TimeoutError:
                     continue
