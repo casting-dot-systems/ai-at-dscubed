@@ -1,34 +1,4 @@
-# Database Setup Configuration for Processing Transcripts
-# This YAML file defines the sequential order for running DDL files
-
 database_setup:
-  name: "Processing Transcripts Database"
-  description: "Setup script for committee, meeting, and project management tables"
-  
-  # Step 1: Create base entity tables (no dependencies)
-  - step: 1
-    name: "Create Base Tables"
-    description: "Create the main entity tables that other tables will reference"
-    files:
-      - "DDL/committee.sql"
-      - "DDL/meeting.sql"
-      - "DDL/project.sql"
-    dependencies: []
-    
-  # Step 2: Create linking tables (depend on base tables)
-  - step: 2
-    name: "Create Linking Tables"
-    description: "Create junction tables that link entities together"
-    files:
-      - "DDL/meeting_members.sql"
-      - "DDL/project_members.sql"
-      - "DDL/meeting_projects.sql"
-    dependencies: [1]
-
-# Execution notes:
-# - Each step must complete successfully before moving to the next
-# - If any file in a step fails, the entire step is rolled back
-# - Foreign key constraints ensure referential integrity database_setup:
   name: "Processing Transcripts Database"
   description: "Setup script for committee, meeting, and project management tables"
   
