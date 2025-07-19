@@ -6,19 +6,19 @@ Liam: For sponsorship outreach, three local businesses have agreed to provide wa
 
 Sophie: Regarding volunteer recruitment, we have 25 people signed up, but we need at least 40 for race day.
 
-Olivia: Maybe we can reach out to the university's running club to find more volunteers.
+Olivia: Maybe we could reach out to the university's running club to find more volunteers.
 
 Lucas: On route planning, the 10k loop is finalized, but the 5k needs a detour because of roadworks on Main Street.
 
-Maya: I'll check with the city about alternate routes.
+Maya: I'll check with the city about alternate routes for the 5k.
 
-Liam: For the registration website, the payment gateway integration is almost done.
+Liam: The registration website is almost ready. The payment gateway integration is nearly done.
 
-Sophie: Let's make sure to test the mobile version as well.
+Sophie: Let's make sure to test the mobile version of the website as well.
 
 [pause]
 
-Maya: About t-shirt colors, I prefer blue.
+Maya: About the t-shirt colors, I prefer blue.
 
 Lucas: I vote for green.
 
@@ -26,11 +26,11 @@ Sophie: Let's send a poll to all registered runners to decide.
 
 Olivia: We also need a medical tent and first aid volunteers.
 
-Sophie: I'll contact the local clinic about that.
+Sophie: I'll contact the local clinic to arrange that.
 
 [pause]
 
-Maya: Before we wrap up, let's review action items. I'll follow up on permits and the route.
+Maya: Before we wrap up, let's review action items. I'll follow up on the permits and the route.
 
 Liam: I'll finish the payment integration and draft sponsor emails.
 
@@ -41,3 +41,5 @@ Olivia: I'll coordinate with the running club.
 Lucas: I'll update the route map.
 
 Maya: Our next meeting is scheduled for two weeks from today. Let's also send out a project update email to all stakeholders by Friday.
+
+All: Agreed.

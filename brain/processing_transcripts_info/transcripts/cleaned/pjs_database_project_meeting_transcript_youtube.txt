@@ -1,0 +1,11 @@
+Alex: For PJ's database project, we started by reviewing the new schema proposal. The normalization looks good, but the foreign key constraints might cause issues during data migration. I suggest running a dry run migration on a test dataset before touching production. I have feedback from the dev team—apparently, some legacy scripts still expect the old table names. I'll volunteer to update the scripts after the migration.
+
+Jamie: I'm working on optimizing the queries for the analytics dashboard, and I'm testing different index strategies to speed up report generation. I brought up a bug where duplicate records appear after batch imports. I suggest adding a unique constraint, and I'll implement it. I also want to automate nightly backups, and I'll test the restore process this week.
+
+Alex: I think using jsonb would make it easier to add new features, but I'm worried about query performance and data validation. I suggest a hybrid approach, using jsonb only for optional fields. The security team flagged some tables for missing encryption at rest, so I'll coordinate with DevOps to enable it. I'll review the current roles and update the access policy.
+
+Jamie: I'll write scripts to validate data integrity before and after migration, and I'll prepare a rollback plan in case anything goes wrong. I suggest setting up alerts for slow queries and failed jobs, and I'll look into integrating with the team's Slack channel. I have some user feedback from the analytics team—they want faster report generation and more export options.
+
+Alex: I'll finalize the schema, review constraints, and draft the rollback plan. I'll optimize queries, set up backups, and review user roles. I'll test the migration, restore, and write validation scripts. I'll coordinate with the dev team, test unique constraints, and set up monitoring. I'll update legacy scripts, enable encryption, and integrate alerts.
+
+Jamie: We scheduled a follow-up meeting for next Thursday and agreed to send a detailed migration plan to PJ for approval. Finally, we joked about how many times we've rewritten this database and promised to bring snacks to the next meeting.

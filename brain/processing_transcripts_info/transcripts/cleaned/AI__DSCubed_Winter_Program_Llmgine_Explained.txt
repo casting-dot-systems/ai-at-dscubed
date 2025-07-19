@@ -1,0 +1,51 @@
+Speaker: Lecturer
+
+All right, welcome to this lecture on the LLM engine. Yesterday's recording broke, so here we are again. The goal of this lecture is to explain the LLM engine framework and set the specifications for a quick exercise project that you can do to get hands-on experience in understanding and building with the framework.
+
+Last week, we covered a lot of introductory concepts, specifically software engineering concepts within Python—setting up project structure, using UV as the package manager, Python typing, classes, and so on. There was also a big section on concurrency, which is very important for building fast applications. Now, we have modules related to LLMs themselves.
+
+After completing your tool-calling project, you probably realized that, at the end of the day, there isn’t much involved in getting an LLM response. There’s the conversation—a list of dictionaries you provide as messages—and tool schemas you can define to go into the call. The LLM knows it can call those functions, and if it wants, it will send back an intent on which functions to call. Then, it’s up to our application to call those functions and send back the results.
+
+So, fundamentally, all the LLM has to do is get context and get tools—two conceptually simple things. Of course, implementing this requires getting the right tools and so on, but it’s not that complicated.
+
+That’s what your project one was about. Now, our goal is to automate the entire club. To do that, we’ll break things down into processes we can start automating. To automate, we need an LLM that can take action in the world, which is done through function calls within these LLM calls you’ve practiced.
+
+We’ve gained the capability to call LLMs and get them to respond with function requests. Now, we need to integrate that into a proper application. As the application grows in complexity, the architecture and the way we organize code and logic become more important. If we just have a bunch of random classes, it quickly becomes overwhelming, and we don’t know where to put new features or files. That’s the motivation for building LLM engine—a general framework and collection of patterns to help us build LLM applications in an organized and efficient manner.
+
+Before we dive in, realize that calling functions, getting models, and context are problems others have tried to solve as well. As a result, there are many LLM application frameworks out there. An example is Llama Index. These frameworks make it easy to do things like get the right context and call functions. With Llama Index, for example, you can load and query data in just a couple of lines. These frameworks abstract out tedious tasks like defining conversations, models, calling APIs, and parsing responses, exposing only the high-level things that make it easy to build applications.
+
+However, the main problem with committing to one of these solutions—and the reason we chose to build our own—is that this field is very young, less than two years old at most. Best practices for building LLM applications are still being figured out. If we committed to any one of these frameworks, we’d be limited by what they do. If they don’t have a feature we want, it’s difficult to contribute and get it implemented in a timely manner. That’s why we chose to build our own framework, LLM engine.
+
+It’s also great practice for us. We’re here to learn about this new field, and there’s no better way than experimenting. Again, it’s not that complicated—we’re just putting information in the prompt, giving it tools, and calling those tools.
+
+Now, let’s go into the actual framework itself. Here’s the big diagram we’ll be explaining. There are parts you’re already familiar with: context (chat history), the model you’re calling, and a mechanism to call tools (defining tool schemas and executing tools when the LLM wants to). The core object or class within LLM engine is a container called an engine. An engine is simply a class with an input and an output. This allows us to group relevant logic into one class.
+
+For a chatbot, for example, the input would be human text, and the output would be the LLM response. The engine can remember the conversation and handle relevant tool calls. It’s really just a container for LLM logic.
+
+The rest of the framework is this message bus structure. The reason for this is to decouple and reduce dependencies between different parts of our application. There are really just two parts: the LLM logic, and the application architecture to help us do certain things.
+
+To demonstrate what we’ve built, in our first semester we built LLM engine and, as a proof of concept, a Notion CRUD Discord bot called Darcy. CRUD stands for create, read, update, delete. Darcy can interact with tasks in Notion. For example, you can say, “@Darcy, what are my tasks?” and it will fetch your tasks live from Notion and generate a response. You can also create a task, and it will ask for confirmation before creating it in Notion. If you confirm, it adds the task. You can then mark tasks as done, and it will update them accordingly.
+
+How did we do that? It’s actually very simple. We give the LLM context, specifically about the tools—a set of functions we’ve defined to interact with Notion. For example, get all users, get active projects, update task, and so on. These are just functions hooked up to the LLM. The complicated part is actually the UI and integrating different components.
+
+That’s what we did in the first semester: built the framework and validated it by building Darcy.
+
+Now, let’s explain the structure. The core object within the framework is the engine, an encapsulation of logic. If we look at the Discord bot demo, within the Notion CRUD engine v3, we define three objects at the top: the tool manager (registers tools, creates schemas, executes tools), the context manager (stores chat history), and the model (currently using 4.1 mini). Inside the engine’s init, we create these three main parts. The main logic intakes a command and returns a result. Inside, you store the input, get context, get tools, create a response, store the response, and handle tool calls as needed. If there’s a tool call, it executes the function and handles any additional logic, such as matching Notion IDs. At the bottom, it loops until all tools are used, allowing for multiple tool calls in sequence.
+
+That’s an example of an engine.
+
+Now, about the two repos: the point of LLM engine is that it’s a general framework, so in theory, we should be able to apply it to other applications, not just for DS Cubed. We have one repo for everything general about LLM engine, and another repo just for DS Cubed-related stuff. The way we sync them up is by having them in the same parent directory. I’ll explain that in more detail later.
+
+Within the LLM engine repo, we have the code for the three things you saw: the tool manager (registers, gets, and executes tools), providers (for getting models from OpenAI), and the chat history manager (appends to an object, similar to your tool-call chatbot engine). What separates this from just doing that is the main innovation of the framework: the message bus data structure. The bus allows us to decouple parts of the application from each other.
+
+The message bus is a class (in bus.py) that routes messages from one object to another or to a function. Messages are simply data classes. There are events and commands. An event is a data class with an event ID, timestamp, metadata, and session ID. You define your custom event by inheriting from this class. For example, ToolChatStatusEvent inherits from Event, and you can define whatever data structure you want on your custom event.
+
+Commands are similar—just data classes we pass around. This ties back to why we learned about data classes last week. The bus takes in events and commands through functions called publish (for events) and execute (for commands). The bus routes the event type to certain other parts of the application we predefine.
+
+A practical application of this is the UI. For example, with the Notion CRUD engine, we can talk to it through Discord or through a CLI interface. The code to output in the CLI and Discord is the same—it’s just this class. How is it able to do that? Traditionally, you might imagine a line like discord.print or similar, but with the message bus, we can send out events and commands to different parts of the application without changing the internal logic of the engine.
+
+For example, when the engine is loading, it sends out a loading status event. The bus routes that event to the relevant component within the display, which then shows the status. If running in the CLI, the UI is the CLI interface; if running in Discord, it’s the Discord chat interface. The same engine logic outputs the same event, but the bus routes it to the appropriate handler. This decouples the logic from the UI.
+
+The bus works by creating a mapping between a type of event and a function that handles that event (the handler). Somewhere at the start of our application, we register a type of event to a handler. In the Notion CLI bot, we register the Notion status event to the CLI display status if running the CLI, or to a Discord handler if running Discord. This allows us to decouple things and create a mapping unique to each application.
+
+The difference between an event and a command: an event is something we send out and forget—we don’t care what happens. For example, the status of the CRUD bot (“calling the LLM”) is just information. A command, on the other hand, expects a response. For example, when the bot asks for confirmation before creating or updating a task, it sends out

@@ -1,0 +1,55 @@
+Alex: So, for PJ's database project, we started by reviewing the new schema proposal. The normalization looks good.
+
+Megan: But the foreign key constraints might cause issues during data migration.
+
+Ryan: I suggest running a dry run migration on a test dataset before touching production.
+
+Olivia: I have feedback from the dev team—apparently, some legacy scripts still expect the old table names.
+
+Lucas: I'll volunteer to update the scripts after the migration.
+
+Megan: I'm working on optimizing the queries for the analytics dashboard.
+
+Ryan: I'm testing different index strategies to speed up report generation.
+
+Alex: I brought up a bug where duplicate records appear after batch imports.
+
+Olivia: I suggest adding a unique constraint.
+
+Lucas: I'll implement it.
+
+Megan: I want to automate nightly backups.
+
+Ryan: I'll test the restore process this week.
+
+Megan: I think using jsonb would make it easier to add new features.
+
+Alex: I'm worried about query performance and data validation.
+
+Ryan: I suggest a hybrid approach, using jsonb only for optional fields.
+
+Olivia: The security team flagged some tables for missing encryption at rest.
+
+Lucas: I'll coordinate with DevOps to enable it.
+
+Megan: I'll review the current roles and update the access policy.
+
+Ryan: I'll write scripts to validate data integrity before and after migration.
+
+Alex: I'll prepare a rollback plan in case anything goes wrong.
+
+Olivia: I suggest setting up alerts for slow queries and failed jobs.
+
+Lucas: I'll look into integrating with the team's Slack channel.
+
+Megan: I have some user feedback from the analytics team. They want faster report generation and more export options.
+
+Alex: I'll finalize the schema, review constraints, and draft the rollback plan.
+
+Megan: I'll optimize queries, set up backups, and review user roles.
+
+Ryan: I'll test migration, restore, and write validation scripts.
+
+Olivia: I'll coordinate with the dev team, test unique constraints, and set up monitoring.
+
+Lucas: I'll update legacy scripts, enable encryption, and integrate alerts.
