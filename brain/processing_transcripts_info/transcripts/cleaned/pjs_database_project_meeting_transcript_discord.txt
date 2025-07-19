@@ -1,0 +1,71 @@
+Alex: For PJ's database project, we started by reviewing the new schema proposal.
+
+Megan: Yeah, the normalization looks good, but I'm worried about the foreign key constraints.
+
+Alex: Right, they might cause issues during data migration.
+
+Ryan: I suggest running a dry run migration on a test dataset first.
+
+Olivia: Good idea. I also have feedback from the dev team—some legacy scripts still expect the old table names.
+
+Lucas: I'll volunteer to update the scripts after the migration.
+
+Megan: Perfect. I'm working on optimizing the queries for the analytics dashboard.
+
+Ryan: I'm testing different index strategies to speed up report generation.
+
+Alex: I also found a bug where duplicate records appear after batch imports.
+
+Olivia: We should add a unique constraint for that.
+
+Lucas: I'll implement it.
+
+Megan: I want to automate nightly backups.
+
+Ryan: I'll test the restore process this week.
+
+Alex: What about using JSONB columns for flexible metadata?
+
+Megan: I think JSONB would make it easier to add new features.
+
+Alex: But I'm worried about query performance and data validation.
+
+Ryan: What about a hybrid approach, using JSONB only for optional fields?
+
+Olivia: That sounds good. Also, the security team flagged some tables for missing encryption at rest.
+
+Lucas: I'll coordinate with DevOps to enable it.
+
+Megan: There's also a tangent about user permissions—some analysts have more access than they should.
+
+Alex: So Megan will review the current roles and update the access policy.
+
+Ryan: I'll write scripts to validate data integrity before and after migration.
+
+Alex: I'll prepare a rollback plan in case anything goes wrong.
+
+Olivia: We also need better monitoring. I suggest setting up alerts for slow queries and failed jobs.
+
+Lucas: I'll look into integrating alerts with the team's Slack channel.
+
+Megan: I have some user feedback from the analytics team. They want faster report generation and more export options.
+
+Alex: So we agreed to prioritize query optimization and add CSV export to the backlog.
+
+Ryan: Before wrapping up, we reviewed action items: Alex to finalize the schema, review constraints, and draft the rollback plan.
+
+Megan: Megan to optimize queries, set up backups, and review user roles.
+
+Ryan: Ryan to test migration, restore, and write validation scripts.
+
+Olivia: Olivia to coordinate with the dev team, test unique constraints, and set up monitoring.
+
+Lucas: Lucas to update legacy scripts, enable encryption, and integrate alerts.
+
+Alex: We scheduled a follow-up meeting for next Thursday.
+
+Megan: And agreed to send a detailed migration plan to PJ for approval.
+
+Ryan: Finally, we joked about how many times we've rewritten this database.
+
+Lucas: And promised to bring snacks to the next meeting.

@@ -12,6 +12,7 @@ SYSTEM_PROMPT = (
     "Your job is to: 1) Decide and clarify which person is talking at what time, 2) Fix grammar mistakes, "
     "3) Remove filler words, 4) Format the transcript as a readable conversation with speaker names. "
     "If the transcript contains pauses or interruptions, note them as [pause] or [interruption]. "
+    "Be wary of spelling mistakes or misheard words in the transcript, attempt to correct them with context of the meeting."
     "Use only the names you can infer from the transcript. If you cannot infer a name, use 'Person 1', 'Person 2', etc. as speaker names."
 )
 

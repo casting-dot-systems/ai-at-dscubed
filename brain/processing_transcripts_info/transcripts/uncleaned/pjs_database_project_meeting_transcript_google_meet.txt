@@ -1,0 +1,57 @@
+00:00:01 - Alex: So for PJ's database project, we started by reviewing the new schema proposal.
+
+00:00:05 - Alex: The normalization looks good.
+
+00:00:08 - Megan: But the foreign key constraints might cause issues during data migration.
+
+00:00:12 - Ryan: I suggest running a dry run migration on a test dataset before touching production.
+
+00:00:18 - Olivia: I have feedback from the dev team—apparently, some legacy scripts still expect the old table names.
+
+00:00:25 - Lucas: I'll volunteer to update the scripts after the migration.
+
+00:00:30 - Megan: I'm working on optimizing the queries for the analytics dashboard.
+
+00:00:35 - Ryan: I'm testing different index strategies to speed up report generation.
+
+00:00:40 - Alex: I brought up a bug where duplicate records appear after batch imports.
+
+00:00:45 - Olivia: I suggest adding a unique constraint.
+
+00:00:48 - Lucas: I'll implement it.
+
+00:00:52 - Megan: I want to automate nightly backups.
+
+00:00:56 - Ryan: I'll test the restore process this week.
+
+00:01:02 - Megan: I think jsonb would make it easier to add new features.
+
+00:01:08 - Alex: I'm worried about query performance and data validation.
+
+00:01:12 - Ryan: I suggest a hybrid approach, using jsonb only for optional fields.
+
+00:01:18 - Olivia: The security team flagged some tables for missing encryption at rest.
+
+00:01:25 - Lucas: I'll coordinate with devops to enable it.
+
+00:01:30 - Megan: I'll review the current roles and update the access policy.
+
+00:01:35 - Ryan: I'll write scripts to validate data integrity before and after migration.
+
+00:01:42 - Alex: I'll prepare a rollback plan in case anything goes wrong.
+
+00:01:48 - Olivia: I suggest setting up alerts for slow queries and failed jobs.
+
+00:01:55 - Lucas: I'll look into integrating with the team's slack channel.
+
+00:02:00 - Megan: I have some user feedback from the analytics team, who want faster report generation and more export options.
+
+00:02:08 - Alex: I'll finalize schema, review constraints, and draft rollback plan.
+
+00:02:15 - Megan: I'll optimize queries, set up backups, and review user roles.
+
+00:02:22 - Ryan: I'll test migration, restore, and write validation scripts.
+
+00:02:28 - Olivia: I'll coordinate with dev team, test unique constraints, and set up monitoring.
+
+00:02:35 - Lucas: I'll update legacy scripts, enable encryption, and integrate alerts. 

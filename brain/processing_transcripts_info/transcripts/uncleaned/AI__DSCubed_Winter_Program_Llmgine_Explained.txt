@@ -1,0 +1,950 @@
+All right, welcome to this lecture on
+LLM engine. Yesterday's recording broke,
+so here we are again. Here we go again.
+The goal of this lecture is going to be
+to explain the LLM engine framework and
+then also set the specifications for a
+quick exercise project that you can do
+to get started and get hands-on in
+understanding the framework and building
+with it.
+So last week we went over a lot of
+introductory concepts specifically a lot
+of software engineering concepts within
+Python
+um you know getting the project
+structure set up UV the package manager
+and then some Python typing classes etc.
+And then there was a big part on
+concurrency. This is a very important
+part of getting a fast application. And
+then we have here these modules related
+to LLMs themselves.
+And if you went in and after doing your
+tool calling project,
+we come to realize that at the end of
+the day, there isn't that much that goes
+into getting an LLM response. There is
+simply the conversation which is you
+know the list of dictionaries that you
+put in as the messages and then there
+are tool schemas that you can define to
+also go into the call at which point the
+LLM knows that it can call those
+functions
+and then if it wants it will send us
+back an intent on which functions to
+call then it is up to our application to
+call those functions and send it back
+the results.
+And so at the end of the day an LLM all
+the LLM has to do is get context and get
+tools which are two very simple things.
+Obviously there's a lot of simple in the
+sense that conceptually simple obviously
+implementing it we have to get the right
+tools and things like that but it's not
+that complicated. There's just two
+things.
+And so that's what your project one was
+about. And now
+again our goal is to be able to automate
+the entire club. And to do that we will
+of course break down into processes that
+we can start automating. And to automate
+stuff we need to have an LLM that can
+take action in the world and that is
+done through functions function calls
+within these LLM calls that you have
+practiced.
+And so we were gained the capability to
+call LLMs and get them to respond with
+function requests and things like that.
+Now we need to move on to integrating
+that into a proper application.
+And as the complexity of the application
+grows, the more the architecture and the
+way we organize the code and organize
+the logic becomes important. Because if
+we just
+have a bunch of random classes, then
+soon it's going to get overwhelming. We
+don't know where to put new features and
+files and things like that. And so that
+is the beginning of the motivation for
+building LLM engine which is a general
+framework/colction
+of patterns that helps us build LLM
+applications in an organized manner
+organized and efficient. So
+we're going to get into that.
+But first we have to realize that
+these types of things of calling
+functions and getting models, getting
+different models, getting context, these
+are problems that other people have been
+trying to solve as well. And as a
+result, they've been refining their
+techniques and they have built their own
+frameworks, right? There are many LLM
+application frameworks out there. An
+example would be Lava Index. And as you
+can see, what they do is they make it
+easy to do things like getting the right
+context in and call functions. If we
+look at llama index, within just a
+couple lines, you're able to uh load a
+bunch of data and then query the data.
+And essentially what these applications
+are doing is they're abstracting out
+some of the tedious stuff that you had
+to do like define the conversations, you
+know, define the model and then actually
+call the API responses, parse the
+responses. They're taking care of all
+that with their custom code, right? And
+what that does is it abstracts out the
+details that perhaps are not so relevant
+and exposes you only to these highle
+things that make it easy to build
+applications. And this is kind of what
+we will do as well.
+But the main problem with committing to
+one of these solutions and the reason we
+chose to build one our own is because
+this field is very very young. It's less
+than two years old at maximum.
+And the best practices for building LLM
+applications like this is being figured
+out as we speak. So if we committed to
+any one of these frameworks, then we
+would have to be limited by what they
+do. If they don't have a feature that we
+want to implement, uh it's kind of
+impossible for us to contribute to that
+project uh in a timely manner and then
+get them to implement the feature for
+us. And that's why we chose to build our
+own framework LLM engine.
+And also it's really good practice for
+us at the end of the day. We're here to
+learn about this new field as well. And
+there's no better way to do that than
+through experimenting as such. And
+again, if we go all the way back, it's
+not that complicated. We're just putting
+information in the prompt and getting
+tools and calling tools. These are not
+impossibly complicated things.
+And so that's that's the motivation.
+And so now we'll go into the actual
+framework itself. And it's this big
+diagram here.
+Um I'm not sure if you can see that.
+Well, let me
+can I All right, this is good. So this
+is the diagram that we will be
+explaining
+and essentially there are parts here
+that you are already familiar with. For
+example, you know, you have your
+context, your chat history, right? Then
+you have your model that you're actually
+calling from. And then you have some
+mechanism to call tools. That's to
+define the tool schemas and also execute
+the tools when the engine when the LLM
+wants to. And the core object or class
+within LLM engine is this um container
+that we've called just an engine, right?
+And an engine is simply a class that has
+an input and an output. And the reason
+we do that is so that we can group
+relevant logic into one uh class.
+And often this is the case for a
+chatbot. So the input would be a LLM
+text or sorry the the human text and
+then the output would be the LLM
+response and then he could remember the
+conversation and do the relevant tool
+calling etc.
+So it's really just a container for LLM
+logic and I'll give an example in a
+second. And then the rest of the
+framework is this message bus structure.
+And the reason we do this is so that we
+can decouple and reduce the dependencies
+between different parts of our
+application. So this is very abstract.
+I'll get to into the details in a
+second. And so there's really just two
+parts. This is the LLM logic and then
+this is the kind of the application
+architecture to help us do certain
+things. And to demonstrate what we have
+built
+to demonstrate I guess why we're doing
+all this we'll first take a look at
+um what we have built using LLM engine.
+So in our first semester we built LM
+engine and then as a proof of concept we
+built a notion CRUD discord bot and CRUD
+obviously means create read update
+delete and essentially it's a discord
+bot called Darcy that can interact with
+tasks in notion. So something we can do
+is like at Darcy can you create a test
+task? Actually I'll just demo it. Give
+me one second.
+All right. Um, so we have our Discord up
+here. I've just started the bot and this
+is what our bot is able to do. It's able
+to say, "Hey at Darcy, what are my
+tasks?"
+And then it's able to fetch my tasks
+live from Notion and then generate a
+response back to me. So
+give it a second.
+Here are my tasks.
+And then it can create a task. So I can
+say hey at Darcy can you create a task
+uh a test task for me?
+And then it will create that. It will
+call notion to create the function. But
+even before then it will ask me for
+confirmation in case it got something
+wrong. And I'll confirm
+and then
+it will add the test task. So if we go
+to our Chrome and if I find myself
+nice wait
+in the
+my tasks here is the new task that we
+have created. And then if we actually go
+back and we say at Darcy, I just
+finished that task,
+it will ask us to get the active task or
+it will get the active task and then ask
+us for confirmation whether we want to
+change it to done. And then if we
+approve and as you just saw there, it
+will change the test to done.
+So of course you think about how we did
+that and it's very very simple actually.
+Again, it's just giving the LLM context,
+specifically context about the tools,
+which is just a set of functions that
+we've defined to interact with notion.
+Actually, I can bring it up right now.
+Um if we go to
+here and then we go tools notion
+notion functions
+and here are the functions. As you can
+see we have the get all users get active
+projects
+um
+update task
+uh and things like that. So these are
+just the functions and then of course we
+need a couple extra things like what the
+notion ID is and things like that. But
+as you can see it's very simple. It's
+just functions hooked up to the LLM. And
+the complicated part about the
+application is actually the UI and
+integrating different components
+together.
+And so that's what we did in the first
+semester. We built the framework and we
+validated it through the application
+of building Darcy.
+And now I'll explain I guess the
+structure.
+So we go back to the diagram.
+Um
+let me think. So wait, give me a sec.
+All right. We're going to go over each
+part of the engine.
+So again, our core object within the
+framework is just an entity called an
+engine. And that is just again an
+encapsulation of logic. And if we go to
+actually before we go in, we have a look
+at the discord bot that you just saw the
+demo.
+It is within wait the other repo.
+Um, so if we go to Darcy and then this
+version right here,
+essentially what we have.
+Okay, wait, why is it cooked? All right,
+so this notion CRUD engine v3 is an
+implementation of this engine. And as
+you can see, what we're doing at the
+start here is defining these three
+objects at the top. So we have the tool
+manager, which is this thing here. And
+we'll take a look at the code in a
+second. But that just essentially does
+everything that a tool needs to do. For
+example, register the tool,
+automatically create the schemas, and
+then also executes the tool when it has
+been called.
+Then we have a something to do with
+context, a way to store the chat history
+and that's our context manager right
+here. So that's this thing. And then we
+have the model which is currently using
+4.1 mini. And that's this part here. So
+as you can see within the init of this
+engine, we're creating these three big
+um parts of our logic that is needed. We
+got some other helper commands here. And
+then
+inside here is our main
+kind of logic. So it intakes a command.
+So we'll get into commands in a second.
+And it returns a result. So that's the
+input and then the output. And then
+within here, as you can see, this is
+should be pretty familiar. You have so
+you're storing the input. Then you're
+getting the context, you're getting the
+tools, and then you're creating a
+response right here. So we'll get into
+this in a second. And then this is the
+response. And then you store the
+response. If there is no tool call
+then uh we can just continue. But if
+there is a tool call then it will uh do
+some logic to execute the function. Uh
+there's some initial additional logic
+here to do with matching the notion ID
+to the notion name and then masking that
+over. But other than that, it's it's
+similar.
+And then at the bottom, it just it's a
+loop. So keep going until all the tools
+are used. And basically that means it
+knows to do multiple tools over and over
+again. So if it needs to assign a task
+to a project, for example, it will first
+need to fetch all the project IDs
+because we don't start with all projects
+inside of context. So it will fetch all
+the project ids and then only then can
+it call the create task function to
+assign it to the correct project. So
+it's a it's a loop and the way we have
+this engine set up is it will keep going
+until all the functions are called and
+then it will produce an output. And so
+that's an example of an engine.
+Um and that's about it.
+So if we now go to the other repo. So
+let me just quickly explain why we have
+two repos. The point of LLM engine is
+that it's a general framework/colction
+of patterns.
+And so in theory we should be able to
+apply to other applications not just for
+DS cubed. So we have one repo for
+everything general about LLM engine
+which is uh this repo right here.
+[Music]
+And then we also have another repo just
+for DSC related stuff which is the AIDS
+cubed repo. So I I'll link those two for
+you to see.
+And essentially the way we sync them up
+I'll explain later. We just have them in
+the same parent directory. U so I'll go
+into that in a little bit more detail
+later.
+But here's the LLM engine repo. And
+within here we have the code for
+the three things you saw just then. So
+this is our tool manager
+um within the tools folder. And here we
+are basically registering tools, getting
+tools. It's just an object to manage
+tools. Execute tools. Uh here we have
+our providers. So for getting from open
+AAI and here we have our models. So
+we're getting the model for 4.1.
+And then
+inside of here is where we have our
+chat history manager. So this is very
+similar. You're just appending stuff to
+a object. Not too complicated as you saw
+before. Nothing was too complicated
+about that. It's very similar to your
+tool called chatbot engine that you
+built. So that's this stuff up here. And
+now what separates it from
+just doing that and the main kind of
+innovation of the framework itself is
+that we're implementing this message bus
+data structure. What this bus allows us
+to do is decouple parts of the
+application with other parts of the
+application.
+And before I'll get into demo, I'll
+first explain what exactly this is.
+So the message bus is a class. It's
+right here. It's in bus py. And it's a
+class. It's a class that is able to
+route messages from an object to another
+object or to a function. And messages
+are simply data classes. So if we go to
+um sec if we find messages and then
+events. So, as you can see, there's
+events and commands. I'll explain the
+difference in a second, but as you can
+see, an event is just a data class, and
+it just has an event ID, um a time
+stamp, some metadata, and the session
+ID. I'll explain session ID in a second
+as well. And event um you define your
+custom event and it inherits from this
+class. An example of that if we go to
+programs another tool called tool chat
+engine go to the top right here is a
+example of an event. So tool chat status
+event and inherits from that event class
+and because of that we can kind of
+define whatever data structure we want
+on the
+uh the custom event that we build.
+So that's an event and then very similar
+for commands. Commands again it's just a
+data class that we're passing around. So
+this ties back to last week's why we
+learned about data classes.
+And so essentially the bus will take in
+these events and commands. And the way
+it takes things in is through a function
+called publish for events. So as you can
+see there's a message bus.publish
+function and it will publish this event
+and with commands it is um execute. So
+if we not sure if it has here but it's
+messageb bus.execute. So if we go to bus
+and then we should be able to find we
+just control F.
+There we go. So execute a command. So
+these two are functions that take in the
+event
+and then essentially what it does is
+then it routes that event type to
+certain other parts of the application
+that we predefine
+and the application of this one example
+is the UI. So if we go back to
+Discord if we're thinking about that
+notion CRUD engine
+uh let me just go back to it.
+So, it is
+obviously talking to us through Discord,
+but with the exact same logic, we're
+actually also able to talk to it through
+just our CLI interface.
+So, you see you do hello
+um what
+are my tasks?
+And it's going to return the same tasks
+as before in Discord.
+And if you think about it,
+how is it able to do that even though
+it's just this one code? Like the code
+to output in the CLI here and the code
+to output to the Discord is the same
+code. It's it's just this um this class
+right here.
+So how is it able to do that? Because
+you know, traditionally, I guess we
+would imagine that somewhere within here
+is going to be a line that goes like uh
+print like discord.print
+something. That's not the actual syntax,
+but you'd imagine that the way to output
+to the UI is within this class itself.
+But because we have this message bus
+right we're able to send out events and
+commands to different parts of the
+application
+without changing the internal logic of
+the engine. So if you look here we have
+this message bus.publish publish
+and it what it's doing is sending out
+events right and because these are
+decoupled in the sense that you know um
+an end point of a UI doesn't really care
+about who sent the event all it knows is
+that when it receives an event it will
+process as such then we can kind of
+switch out the display so with the CLI
+right so as you saw there was a loading
+um there was like a status bar that said
+it was loading and same within Discord
+there's like it was loading while it was
+getting the response and that comes from
+um this status event right here. So what
+happens is while it's loading the engine
+will send out an event and this is the
+specific type of event which is the
+loading status event and then it will
+route that the bus will route that to
+the relevant component within the
+display that will then show that
+display. So when we were running it
+within the CLI, the the UI that was
+active was the CLI UI interface and then
+the event will come through the bus to
+the CLI and then it will know how to
+process it, right? And now if we started
+with the discord, we would switch out
+this CLI with the discord like ba chat
+interface and then it will still the
+same engine logic will still output the
+same event which is this. But now
+instead of routing to the CLI it's
+routing to the discord and is able to
+generate that message. So this is the
+point of the bus is to decouple this
+other side and then so the engine can
+just worry about the logic and not
+really care about anything else.
+And again the way we do that is by
+having this bus structure that is able
+to receive events and then output it to
+the right place. And so how does it able
+to rout route it to the right place?
+It's able to do that because
+fundamentally what the bus does is it
+creates a mapping between a type of
+event and a function that will handle
+that type of event. So we call a
+function that handles an event or
+command its handler and then obviously
+we call the event and command itself. So
+what happens is if we come to the bus
+and we go all the way to the top there
+is
+uh we have here the mapping between
+let's just look at this part for now.
+I'll explain sessions in a second. So we
+have the mapping is a dictionary of the
+type of event to the um or a list of
+event handlers.
+And so that's really how the bus works.
+So somewhere at the start of our
+application we have registered a type of
+event to a handler. And in the case of
+the notion CLI crobbot, what we have
+done is we have registered the notion
+status event to the CLI display status.
+If we're running the CLI and if we're
+running Discord, then we will have
+registered the event now to a different
+event handler for the Discord. And so
+that's how we're able to decouple things
+because we're able to create this
+mapping that is unique to each
+application that we define our own. And
+now I'll quickly explain the difference
+between event and a command. So an event
+is something that we send out and we
+forget. We don't really care what
+happens. It's kind of like this thing
+has happened. So this is a great example
+of this is the status of the CRUDbar.
+you know, we're calling the LLM just to
+let you know, like you don't need to do
+anything, right? And a command on the
+other hand, you need a response, right?
+So, an example of this would be the
+confirmation. You saw how within the
+Discord when I tried to create a task or
+update a task, it asked for
+confirmation. What happened then was it
+sent out not a not an event, it sent out
+a command because we want a response
+from that command, right? when we send
+out the message. Let me just bring up
+the
+um diagram again.
+So within the engine, we're at a place
+where we want to send confirmation to
+the user to ask for confirmation to
+create a task or update a task. Instead
+of sending out an event because when we
+send out an event, we we just continue
+with the with logic. We don't really
+care what happens. We send out a command
+and that command goes to the bus to the
+user input and then it waits. this
+application waits until we get the
+response to either continue or or not
+continue. And so that's the main
+difference between an event and a
+command. And therefore, it makes sense
+that a command only has one handler,
+whereas an event can have many handlers,
+right? An event um because we don't
+really care what happens, many different
+things can listen to that event. And
+that's actually the observer design
+pattern that's in the week 2 uh modules.
+And so that's the difference between an
+event and a command. Again, great way to
+think about it is event is the status of
+the engine, right? We're just displaying
+the status. We don't really need to
+nothing needs to happen. But a command
+on the other hand is getting
+confirmation. Um, and that's done if you
+know we need to find confirmation to an
+action within the logic.
+So that's the difference between an
+event and a command. And just to recap
+where we are, you know, we've created
+this container for LLM logic. And of
+course, it uses some of these little
+classes that we've built. And now, you
+know, the main thing is there's an input
+and output. But in between that, we want
+to do something perhaps to the UI or get
+confirmation from somewhere. And the way
+we do that is through sending out events
+and commands. And that's the way we talk
+to different parts of the application,
+right? And then we have this message bus
+structure that's able to route an
+incoming event or an incoming command to
+the right place. In this case, it's
+going to be the UI or the user input.
+And that way it allows for a more
+modularized application and for things
+to be developed a bit more um cleanly.
+And so that's all that's where we are at
+now. And then finally, we just have this
+little thing about sessions. And if you
+notice when we were looking at the
+discord demo, there was a session number
+when when I asked Darcy to respond. And
+the reason for that is, you know, the
+way the handlers the mapping works is
+that it's mapping a type of event to a
+handler, right? So the problem here is
+if we have two engines, right, which do
+send out the same type of event, well,
+the handlers will not know which engine
+it came from, right? because all it sees
+is at a single event. So then if we have
+two people talking uh at the same time,
+what happens? We create two engines and
+then the two engines will send out the
+same looking type of event status
+update, which is bad as then we don't
+know which one to handle and we don't
+know um where that came from. So then to
+solve that problem, what we create is a
+session ID. It's just a simple string
+identifier to identify which component
+that event came from that event belongs
+to and which handler should handle that
+event. So then what happens is when you
+run like bus.execute
+it will first look at the session ID
+then it will look at the type and then
+it will map to the handler. Same with
+the um event as well.
+So that's that's really about it though
+with the message bus again. Um, you can
+just think of
+the whole point of the message bus as a
+way for different parts of our
+application to communicate to each
+other, right? Without knowing, you know,
+what is happening on the other side. So,
+again, the engine wants to get
+confirmation, but it doesn't really care
+about how exactly it gets confirmation.
+same way that um the UI would like to um
+display the status of the engine, but it
+doesn't really care which engine it came
+from, right?
+And so, so that's the point of the
+message bus. And again, it's just to
+help us build these applications a bit
+easier.
+Um and so that's that. And another
+benefit of having this bus is that we
+can simply add another every time an
+event comes we can simply print that
+event out through an observability
+module. So if we go to logs and we go to
+the latest part here we have a
+visualization I guess of all the events.
+So this is a tool registered event. So
+this is what happens when you register a
+tool with the tool register. Um, and
+here is a command. Basically, we're um
+saying hi to the um to the CLI and
+that's the prompt. And then we retrieve
+the chat history which is from this. So
+that's the event that's sent out when
+it's happened. Then we have a tool
+compiled event. And then um we have the
+tool engine status is calling LLM very
+familiar. And then here is our actual
+LLM call and that's also an event. And
+then um we have the response. We have
+the response from OpenAI, this long
+string and so on. So this also makes it
+easy for us to observe stuff because we
+can simply log events as they come out.
+It's like instead of having a logging uh
+line, we we can just send out events and
+the bus will log it. And you might have
+noticed that this is only events because
+we don't really we don't log commands.
+Instead what we do is when a command is
+about to be executed in like in other
+words the handler function is about to
+be executed we send out before it is
+executed we send out the command started
+event uh which is what you saw up here.
+Uh and then after we get the result we
+we send out a command finished event and
+that way we just have to log events and
+we don't have to worry about logging
+commands and events.
+Um, so that's that
+and that's really about it for the
+engine. So if you look at the code for a
+tool chat engine, so very similar to
+what you guys have done, you have, you
+know, get tools, publish the status,
+um, so just have a read of this and it
+should make it should make sense. And
+um, if you notice, of course, we do a
+lot of typing and that's why we did that
+typing module in week one. We have types
+for all types of events of course uh but
+also like command result is a type. We
+don't just return
+um the raw response.
+And so and so that's really about it for
+the framework. Again just to recap,
+we're starting all the way from last
+week where you guys interacted with the
+OpenAI API and we realized that it
+really just comes down to two things.
+getting the prompt and then giving it
+the tools needed to execute stuff and
+interact with the world. And to do that,
+well, we need to be able to get the
+information for somewhere, piece it all
+together, glue it all together with some
+sort of application. In this case, a
+Python application. And then you guys
+have done that with the tool called chat
+engine. Sorry, the tool called chat
+assignment. And then now we're extending
+this to something more um more flexible
+and more architecturally thought out
+which is our framework. And the reason
+we're doing that is so that you know we
+can develop more complicated
+applications with a bit more
+organization. And as you can see this is
+a bit more flexible as well because we
+can you know plug and play the UI and
+also certain components again of our
+application.
+And that's really about it for the LLM
+engine. And now comes your assignment.
+So what I'll get you to do is I'll get
+you to recreate essentially your tool
+chatbot except using our engine. So if
+you have a look at this example, so you
+need to be referring to this example
+which is within programs and tool chat
+engine within the LLM engine uh repo.
+And basically you're just going to be
+recreating this. So um it is at at this
+point it's perfectly fine even to just
+you know write out the program line to
+line copy like copy paste it as long as
+you understand because this really
+exposes every single part of the
+application that's important. Um so if
+you go into that and you have a quick
+read of the LLM manager have a quick
+read of the um the chat history and
+things like that that would be very
+helpful. And again, the main goal of
+this project is to get you in inside of
+the framework and having a look.
+And then essentially, you'll have to
+register um so we have a separate CLI
+kind of um a couple of components to
+print out that like thing that you see.
+So I think I if I run this
+um
+if I say hi,
+it might actually it might not work. Oh
+no, it's all good. Um, so what's the
+weather
+you know delayed?
+Um, it's going to
+call the call the tool call and then
+get the result. And so basically the way
+we're able to register that is through
+these commands here. So have a have a
+you know just have a read of this.
+Actually, there's a little guide here
+within the engines folder to
+to describe how our CLI framework works.
+And so if you want to just duplicate
+that um and also feel free to expand on
+this instead of just doing a tool chat
+engine, you can add some own some of
+your own features. Maybe it's like a um
+a a workflow. So it like sends your
+message through a prompt to one model
+and then sends it to another model or
+something like that. Again, like the
+whole point is that we can contain any
+sort of logic within here to fit
+whatever need that we want. So if you
+want to be creative, feel free to do
+that. Um, and so that's going to be your
+project two point one. So next week
+we're going to talk about the database.
+Um, and I guess I'll set this again into
+more context.
+So right now we're talking about the
+application side of getting the
+basically the AI agents to work. But now
+you know moving on we also need to be
+talking about the data side right
+because for the AI to make the right
+decisions and call the right functions
+it needs to know the right information
+and to have all the information be read
+be able to be retrieved somewhere. And
+that means we have to capture a bunch of
+information about our club and our
+processes and we have to store in a way
+that's able to be easily retrieved by
+the LLM through whatever sort of method
+that we want to define.
+And so next week not next week on
+Thursday PJ will give a lecture on
+database and we're using just Postgress
+database. So if you've taken database
+systems it's going to be pretty simple.
+we have a special type of architecture
+that we've designed to facilitate these
+LLM activities.
+Um, and then so yeah, that's going to be
+your project 2.2. There's going to be a
+little exercise just for you to get
+hands over the database and then this
+project 2.1 to get hands-on with the
+framework. And then with these two
+completed, you're basically able to
+build any sort of LLM application
+because again, if you think about it,
+you just need to be able to find the
+information from somewhere in which case
+it's going to be our database and our um
+our Discord or our notion. And then we
+just need to give it tools to be able to
+interact with the world, whether it's
+updating task or even sending out
+emails, things like that. And the way we
+glue everything together is through our
+LLM engine framework through these
+engines that you know can interact uh
+through a modularized way to all sorts
+of types of UIs like Discord or CLI and
+things like that. And finally there's a
+a thing about setting up the actual um
+the actual code. So as I told you we
+have two frameworks and in fact the
+other framework uh sorry the other sorry
+we have two repos and then the other
+repo which is the AISQ repo depends on
+this LLM engine repo right because this
+LLM engine repo is the general repo
+that's that you know we can switch to
+another application. Um so what happens
+is it's a local dependency which means
+it like sources from locally not from
+the cloud. So if we go back, if we go to
+the terminal and clear and then say I'm
+in um dev/lm
+engine, but if I do cd, I'm in dev. And
+if I ls,
+so I've got a couple, but um
+the two import the two ones that we've
+seen are AIDS cubed and lm engine. And
+what matters is that these are in the
+same parent folder, right? And then once
+they're in the same parent folder, if
+you go into, this is very important, you
+have to go into one of the um one of the
+repos. So if you're working on LM
+engine, you have to go into LM engine.
+And then if you do UV sync, uh it will
+sync all the packages in environment for
+LLM engine, you can start working on LM
+engine, right? Uh of course, you have to
+get your environment variables as well.
+Um and things like that. And then same
+goes, you have to go back and then you
+have to go into um AI at DS cubed.
+Uh and now if you do UV sync,
+it's going to sync and get all that
+packaging for within AIDS cubed. And
+again, you have to get your environment
+variables as well. So very important, UV
+doesn't work on the outer parent layer.
+uh UV only works when you go into um the
+actual folder. So that means opening the
+LLM engine folder or opening the AI disc
+photo or photo with VS Code or cursor.
+So it's very important that you do that.
+There was a bit of confusion
+and then uh so that's it. So
+um
+if you have any other questions, let me
+know. But do have a good read at the LLM
+engine framework. And uh yeah, so that's
+what we'll be using to build all sorts
+of features in the future. Um and and
+just one last thing I guess about LM
+engine is that it's not so much a
+concrete defined framework as more of a
+pattern to do any sort of LLM
+application. The sense that we can
+integrate different parts from different
+other frameworks within our framework.
+Right? Because if you think about it, we
+can if there was another framework, we
+can just take it and put it inside of
+our engine. And that's one of the things
+that we will try to do because again, as
+I said all the way at the beginning that
+this field is moving very fast. The best
+practices still being figured out as we
+speak. So we wanted to be flexible
+and to be able to accommodate that and
+be able to expand the features of the
+engine as we move forward. But that's
+it. Thanks for listening and um yeah,
+let me know if you have any questions.
