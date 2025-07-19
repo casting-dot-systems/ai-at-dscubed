@@ -1,0 +1,14 @@
+[project]
+name = "transcript-topics-tool"
+version = "0.1.0"
+description = "Transcript topics extraction tool"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

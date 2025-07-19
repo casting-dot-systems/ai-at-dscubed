@@ -5,8 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "llmgine @ {root:parent:uri}/llmgine",
+    # "llmgine @ {root:parent:uri}/llmgine",  # Commented out - broken reference
     "notion>=0.0.28",
+    "sentence-transformers>=5.0.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "dotenv>=0.9.9",
+    "asyncio>=3.4.3",
+    "typing>=3.10.0.0",
+    "pathlib>=1.0.1",
 ]
 
 [build-system]
@@ -21,3 +28,8 @@ allow-direct-references = true
 
 [tool.hatch.build]
 packages = ["src", "custom_tools"]
+
+[tool.uv.workspace]
+members = [
+    "custom_tools/transcript_topics",
+]
