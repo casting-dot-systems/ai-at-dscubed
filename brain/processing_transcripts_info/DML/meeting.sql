@@ -1,0 +1,1 @@
+INSERT INTO meeting (meeting_id, type, transcript_link, date, meeting_summary) VALUES

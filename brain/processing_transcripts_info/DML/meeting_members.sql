@@ -1,0 +1,1 @@
+INSERT INTO meeting_members (meeting_id, member_id) VALUES

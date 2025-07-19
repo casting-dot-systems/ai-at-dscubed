@@ -1,0 +1,1 @@
+INSERT INTO meeting_projects (meeting_id, project_id) VALUES
