@@ -5,9 +5,8 @@ from sqlalchemy.engine import Engine
 from pathlib import Path
 from typing import Optional
 import sys
-# sys.path.append(str(Path(__file__).parent.parent / 'src'))
-# from extractor.notion_extractor import NotionExtractor
-# from utils.pipeline import Pipeline
+from data_source_extractors.notion_extractor import NotionExtractor
+from pipeline import Pipeline
 
 def main():
     load_dotenv()
