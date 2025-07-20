@@ -42,7 +42,7 @@ class EngineSelectorView(discord.ui.View):
         # Create buttons dynamically
         for i, item in enumerate(items):
             # Create a unique button for each item
-            button = discord.ui.Button(
+            button : discord.ui.Button[discord.ui.View] = discord.ui.Button(
                 label=item,
                 style=discord.ButtonStyle.primary,
                 custom_id=f"engine_{i}"

@@ -60,3 +60,4 @@ uv run <app-name>
 - MCP servers follow strict async/string return patterns for AI tool integration
 - All internal packages use `{ workspace = true }` for editable development installs
 - Python 3.13+ required
+- Remember to use "uv run" instead of "python" 

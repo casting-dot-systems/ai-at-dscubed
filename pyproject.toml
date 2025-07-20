@@ -24,6 +24,7 @@ brain = { workspace = true }
 
 # App packages
 darcy = { workspace = true }
+darcy-backend = { workspace = true }
 ai-discord-bot = { workspace = true }
 ai-discord-bot-v2 = { workspace = true }
 meeting-recorder-bot = { workspace = true }

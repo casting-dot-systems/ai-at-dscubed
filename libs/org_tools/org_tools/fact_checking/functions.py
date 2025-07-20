@@ -2,7 +2,7 @@ from typing import List
 
 from llmgine.bus.bus import MessageBus
 from llmgine.ui.cli.components import SelectPromptCommand
-from custom_tools.brain.postgres.postgres import (
+from org_tools.brain.postgres.postgres import (
     DatabaseEngine,
     set_user_fact,
     get_user_fact,

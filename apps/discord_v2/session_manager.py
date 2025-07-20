@@ -72,7 +72,7 @@ class SessionManager:
         session_id = self.generate_session_id()
 
         # Create initial session message
-        session_msg = await message.reply(f"🔄 **Session {session_id} starting...**")
+        session_msg = await message.reply(f"🔄 **Thinking...**")
 
         # Initialize session data
         self.active_sessions[session_id] = {
@@ -148,7 +148,7 @@ class SessionManager:
         if message:
             emoji = STATUS_EMOJI.get(status, "🔄")
             await session["session_status_msg"].edit(
-                content=f"{emoji} **Session {session_id}**: {message}"
+                content=f"{emoji} **{message}**"
             )
 
         if status == SessionStatus.COMPLETED:
@@ -191,7 +191,7 @@ class SessionManager:
             # Create the view for Yes/No input
             view = YesNoView(timeout=timeout, original_author=session["author"])
             prompt_msg = await session["channel"].send(
-                content=f"⚠️ **Session {session_id}**: {session['author'].mention}, {prompt_text}",
+                content=f"⚠️ **{session['author'].mention}, {prompt_text}",
                 view=view,
             )
             session["session_msgs"].append(prompt_msg)
@@ -205,9 +205,9 @@ class SessionManager:
             else:
                 result = view.value
                 resp_text = (
-                    f"✅ **Session {session_id} Accepted**: {prompt_text}"
+                    f"✅ **Accepted**: {prompt_text}"
                     if view.value
-                    else f"❌ **Session {session_id} Declined**: {prompt_text}"
+                    else f"❌ **Declined**: {prompt_text}"
                 )
                 await prompt_msg.edit(content=f"{resp_text}", view=None)
 

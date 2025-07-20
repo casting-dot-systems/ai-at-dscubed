@@ -12,8 +12,8 @@ from typing import Optional
 
 import discord
 
-from custom_tools.general.functions import get_all_facts, get_user_info
-from custom_tools.brain.notion.data import (
+from org_tools.general.functions import get_all_facts, get_user_info
+from org_tools.brain.notion.data import (
     UserData,
     discord_user_id_type,
     get_user_from_discord_id,

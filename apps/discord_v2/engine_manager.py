@@ -13,7 +13,7 @@ from llmgine.bus.bus import MessageBus
 from llmgine.messages.commands import CommandResult
 from llmgine.llm import SessionID
 
-from darcy.notion_crud_engine_v3 import (
+from apps.darcy_backend.engines.notion_crud_engine_v3 import (
     NotionCRUDEngineConfirmationCommand,
     NotionCRUDEnginePromptCommand,
     NotionCRUDEngineStatusEvent,
@@ -71,7 +71,7 @@ class EngineManager:
         async with self.bus.create_session(id_input=session_id) as _:
             # Create a new engine for this command
             engine = NotionCRUDEngineV3(
-                session_id=session_id,
+                session_id=SessionID(session_id),
                 system_prompt=self._get_system_prompt(),
             )
             await engine.register_tools(

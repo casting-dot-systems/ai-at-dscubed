@@ -1,0 +1,22 @@
+[project]
+name = "darcy-backend"
+version = "0.1.0"
+description = "Notion CRUD engines and fact processing with fastapi backend"
+requires-python = ">=3.13"
+dependencies = ["llmgine", "org_tools", "org_types", "brain", "fastapi", "uvicorn"]
+
+[tool.uv.sources]
+llmgine = { workspace = true }
+org_tools = { workspace = true }
+org_types = { workspace = true }
+brain = { workspace = true }
+
+[project.scripts]
+darcy = "darcy.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["darcy"]

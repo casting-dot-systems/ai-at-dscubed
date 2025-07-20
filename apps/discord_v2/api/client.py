@@ -10,9 +10,9 @@ from websockets.exceptions import ConnectionClosed, WebSocketException
 from pydantic import BaseModel
 import httpx
 
-from llmgine.api.services.session_service import SessionStatus
+from llmgineAPI.services.session_service import SessionStatus
 
-from api.config import WebSocketConfig
+from .config import WebSocketConfig
 
 logger = logging.getLogger(__name__)
 
@@ -228,11 +228,9 @@ class WebSocketAPIClient:
                 
             except ConnectionClosed:
                 logger.warning("WebSocket connection closed")
-                await self._handle_reconnection()
                 break
             except WebSocketException as e:
                 logger.error(f"WebSocket error: {e}")
-                await self._handle_reconnection()
                 break
             except Exception as e:
                 logger.error(f"Error monitoring WebSocket: {e}")
