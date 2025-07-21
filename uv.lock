@@ -58,8 +58,6 @@ name = "ai-discord-bot-v2"
 version = "0.2.0"
 source = { editable = "apps/discord_v2" }
 dependencies = [
-    { name = "brain" },
-    { name = "darcy" },
     { name = "discord-py" },
     { name = "llmgine" },
     { name = "org-tools" },
@@ -69,8 +67,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "brain", editable = "libs/brain" },
-    { name = "darcy", editable = "apps/darcy" },
     { name = "discord-py", specifier = ">=2.3.2" },
     { name = "llmgine", editable = "llmgine" },
     { name = "org-tools", editable = "libs/org_tools" },
