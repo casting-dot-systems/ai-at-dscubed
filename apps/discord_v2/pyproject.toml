@@ -7,8 +7,6 @@ dependencies = [
     "llmgine",
     "org_tools",
     "org_types",
-    "brain",
-    "darcy",
     "discord.py>=2.3.2",
     "python-dotenv>=1.1.0",
 ]
@@ -17,8 +15,6 @@ dependencies = [
 llmgine = { workspace = true }
 org_tools = { workspace = true }
 org_types = { workspace = true }
-brain = { workspace = true }
-darcy = { workspace = true }
 
 [project.scripts]
 discord-bot-v2 = "discord_v2.bot:main"

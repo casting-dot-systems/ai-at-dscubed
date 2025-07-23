@@ -9,10 +9,10 @@ from typing import List, Optional
 import discord
 
 class YesNoView(discord.ui.View):
-    def __init__(self, timeout: Optional[float], original_author: discord.Member) -> None:
+    def __init__(self, timeout: Optional[float], original_author: discord.Member | discord.User) -> None:
         super().__init__(timeout=timeout)
         self.value: Optional[bool] = None
-        self.original_author: discord.Member = original_author
+        self.original_author: discord.Member | discord.User = original_author
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user == self.original_author

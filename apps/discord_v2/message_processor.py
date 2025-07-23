@@ -12,6 +12,7 @@ from typing import Optional
 
 import discord
 
+from llmgine.llm import SessionID
 from org_tools.general.functions import get_all_facts, get_user_info
 from org_tools.brain.notion.data import (
     UserData,
@@ -32,12 +33,11 @@ class MessageProcessor:
 
     async def process_mention(
         self, message: discord.Message
-    ) -> tuple[discord.Message, str]:
+    ) -> tuple[discord.Message, SessionID]:
         """Process a message where the bot is mentioned."""
 
-        # TODO need a session id type
-        session_id: str = await self.session_manager.create_session(
-            message, expire_after_minutes=1
+        session_id: SessionID = await self.session_manager.use_session(
+            message, expire_after_minutes=5
         )
 
         # Process user mentions
@@ -59,7 +59,7 @@ class MessageProcessor:
         user_mentions = [user.id for user in message.mentions]
         mentions_payload: list[dict[discord_user_id_type, str]] = []
         for user_mention in user_mentions:
-            if user_mention == self.config.bot_id:
+            if user_mention == int(self.config.bot_id):
                 continue
             discord_id = discord_user_id_type(str(user_mention))
             user_data: UserData | None = get_user_from_discord_id(discord_id)
@@ -91,7 +91,7 @@ class MessageProcessor:
         """Get recent chat history from the channel."""
         chat_history: list[str] = []
         async for msg in message.channel.history(limit=20):
-            if msg.author.id == self.config.bot_id:
+            if msg.author.id == int(self.config.bot_id):
                 if "Result" not in msg.content:
                     continue
             chat_history.append(f"{msg.author.display_name}: {msg.content}")

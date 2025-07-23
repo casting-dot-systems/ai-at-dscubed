@@ -2,15 +2,14 @@
 import asyncio
 import json
 import logging
-from typing import Dict, Any, Optional, Callable, List
+from typing import Dict, Any, List, Optional
 from enum import Enum
-from datetime import datetime
+import uuid
 import websockets
 from websockets.exceptions import ConnectionClosed, WebSocketException
-from pydantic import BaseModel
 import httpx
 
-from llmgineAPI.services.session_service import SessionStatus
+from llmgineAPI.models.websocket import WSMessage, WSResponse
 
 from .config import WebSocketConfig
 
@@ -22,57 +21,24 @@ class ConnectionState(Enum):
     CONNECTED = "connected"
     RECONNECTING = "reconnecting"
 
-class WebSocketMessage(BaseModel):
-    """Standardized WebSocket message format"""
-    type: str
-    data: Dict[str, Any]
-
-class SessionInfo(BaseModel):
-    """Session information"""
-    session_id: str
-    created_at: str
-
 class WebSocketAPIClient:
     """WebSocket-based API client for backend communication"""
 
     def __init__(self):
         self.websocket: Optional[Any] = None  # Use Any to avoid attribute/type errors
         self.state: ConnectionState = ConnectionState.DISCONNECTED
-        self.session_info: Optional[SessionInfo] = None
-        self.message_handlers: Dict[str, List[Callable[..., None]]] = {}
-        self.response_queue: asyncio.Queue[WebSocketMessage] = asyncio.Queue()
+        self.response_queue: asyncio.Queue[WSResponse] = asyncio.Queue()
         self._monitor_task: Optional[asyncio.Task[None]] = None
         self.config = WebSocketConfig.from_env()
         self.client = httpx.AsyncClient()
-        self.session_id: Optional[str] = None
         self._reconnect_delay = 1.0
         self._max_reconnect_delay = 30.0
 
-    async def create_session(self) -> SessionInfo:
-        """Create a new session with the backend"""
+    async def connect_websocket(self) -> Optional[str]:
+        """Connect to the WebSocket"""
         try:
-            logger.info(f"Attempting to create session at: {self.config.base_url}/api/sessions")
-            
-            # Create session via HTTP API with better timeout and error handling
-            response = await self.client.post(
-                f"{self.config.base_url}/api/sessions",
-                follow_redirects=True,
-                timeout=30.0  # 30 second timeout
-            )
-            
-            logger.info(f"HTTP response status: {response.status_code}")
-            
-            response_data = response.json()
-            logger.info(f"Response data: {response_data}")
-            
-            if response_data.get("status") != "success":
-                raise Exception(f"Failed to create session: {response_data.get('message', 'Unknown error')}")
-            
-            self.session_id = response_data["session_id"]
-            logger.info(f"Session created via HTTP: {self.session_id}")
-            
-            # Connect to WebSocket with the session ID
-            ws_url = f"{self.config.ws_url}/api/sessions/{self.session_id}/ws"
+
+            ws_url = f"{self.config.ws_url}/api/ws"
             logger.info(f"Connecting to WebSocket: {ws_url}")
             
             self.websocket = await websockets.connect(ws_url)
@@ -84,16 +50,13 @@ class WebSocketAPIClient:
             await self.start_monitoring()
             
             # Wait for the backend's "connected" confirmation
-            response = await self._wait_for_response("connected", timeout=self.config.message_timeout)
+            response = await self._wait_for_response("connected", expected_message_id=None, timeout=self.config.message_timeout)
             print(f"Received response: {response}")
             
-            if response and response.data.get("status") == SessionStatus.RUNNING.value:
-                self.session_info = SessionInfo(
-                    session_id=self.session_id,
-                    created_at=datetime.now().isoformat()
-                )
-                logger.info(f"Session fully established: {self.session_id}")
-                return self.session_info
+            if response and response.data.get("status") == "connected":
+                self.app_id = response.data.get("app_id")
+                logger.info(f"Session fully established: {self.app_id}")
+                return self.app_id
             else:
                 # Clean up if connection confirmation failed
                 await self._disconnect()
@@ -112,24 +75,27 @@ class WebSocketAPIClient:
             raise
 
     
-    async def use_websocket(self, message_type: str, data: Dict[str, Any]) -> Optional[WebSocketMessage]:
+    async def use_websocket(self, message_type: str, data: Dict[str, Any]) -> Optional[WSResponse]:
         """Send a message through WebSocket and wait for response"""
-        if not self.session_info:
-            raise Exception("No active session. Call create_session() first.")
-        
+
         if self.state != ConnectionState.CONNECTED:
             raise Exception("WebSocket not connected. Call connect_websocket() first.")
         
         try:
-            message = WebSocketMessage(
+            if message_type == "create_session":
+                data["app_id"] = self.app_id
+
+            message = WSMessage(
                 type=message_type,
+                message_id=str(uuid.uuid4()),
                 data=data,
             )
             print(f"Sending message: {message}")
             await self._send_message(message)
             print(f"Waiting for response: {message_type}_res")
+            print(f"Message ID: {data.get('message_id')}")
             # Wait for response
-            response = await self._wait_for_response(f"{message_type}_res", timeout=self.config.message_timeout)
+            response = await self._wait_for_response(f"{message_type}_res", message.message_id, timeout=self.config.message_timeout)
             print(f"Received response: {response}")
             return response if response else None
             
@@ -154,12 +120,7 @@ class WebSocketAPIClient:
             except asyncio.CancelledError:
                 pass
         logger.info("WebSocket monitoring stopped")
-    
-    def register_message_handler(self, message_type: str, handler: Callable):
-        """Register a handler for specific message types"""
-        if message_type not in self.message_handlers:
-            self.message_handlers[message_type] = []
-        self.message_handlers[message_type].append(handler)
+
     
     async def close(self):
         """Close the WebSocket connection and cleanup"""
@@ -172,13 +133,13 @@ class WebSocketAPIClient:
         if self.websocket:
             
             # Connect to WebSocket with the session ID
-            ws_url = f"{self.config.ws_url}/api/sessions/{self.session_id}/ws"
+            ws_url = f"{self.config.ws_url}/api/ws"
             
             self.websocket = await websockets.connect(ws_url)
             self.state = ConnectionState.CONNECTED
 
             await self.start_monitoring()
-            response = await self._wait_for_response("connected", timeout=self.config.message_timeout)
+            response = await self._wait_for_response("connected", expected_message_id=None, timeout=self.config.message_timeout)
             if response and response.type == "connected":
                 logger.info("WebSocket connected")
             else:
@@ -194,17 +155,13 @@ class WebSocketAPIClient:
         self.state = ConnectionState.DISCONNECTED
         logger.info("WebSocket disconnected")
     
-    async def _send_message(self, message: WebSocketMessage):
+    async def _send_message(self, message: WSMessage):
         """Send a message through WebSocket"""
         if not self.websocket:
             raise Exception("WebSocket not connected")
+
         
-        message_json = json.dumps({
-            "type": message.type,
-            "data": message.data,
-        })
-        
-        await self.websocket.send(message_json)
+        await self.websocket.send(message.model_dump_json())
         logger.debug(f"Sent message: {message.type}")
     
     async def _monitor_websocket(self):
@@ -216,16 +173,17 @@ class WebSocketAPIClient:
                 
                 message_json = await self.websocket.recv()
                 message_data = json.loads(message_json)
-                
-                # Parse message
-                message = WebSocketMessage(
+                print(f"Received message: {message_data}")
+
+
+
+                # Handle message
+                await self.response_queue.put(WSResponse(
                     type=message_data.get("type", "unknown"),
                     data=message_data.get("data", {}),
-                )
-                
-                # Handle message
-                await self._handle_message(message)
-                
+                    message_id=message_data.get("message_id", str(uuid.uuid4()))
+                ))
+                print(f"Response queue: {self.response_queue}")
             except ConnectionClosed:
                 logger.warning("WebSocket connection closed")
                 break
@@ -236,42 +194,57 @@ class WebSocketAPIClient:
                 logger.error(f"Error monitoring WebSocket: {e}")
                 break
     
-    async def _handle_message(self, message: WebSocketMessage):
-        """Handle incoming message"""
-        logger.debug(f"Received message: {message.type}")
-        
-        # Add to response queue for waiting operations
-        await self.response_queue.put(message)
-        
-        # Call registered handlers
-        if message.type in self.message_handlers:
-            for handler in self.message_handlers[message.type]:
-                try:
-                    await handler(message)
-                except Exception as e:
-                    logger.error(f"Error in message handler: {e}")
-    
-    async def _wait_for_response(self, expected_type: str, timeout: float = 30.0) -> Optional[WebSocketMessage]:
+    async def _wait_for_response(self, expected_type: str, expected_message_id: Optional[str] = None, timeout: float = 30.0) -> Optional[WSResponse]:
         """Wait for a specific response type"""
         try:
             start_time = asyncio.get_event_loop().time()
+            pending_messages : List[WSResponse] = []
             
             while True:
                 # Check timeout
                 if asyncio.get_event_loop().time() - start_time > timeout:
                     logger.warning(f"Timeout waiting for response: {expected_type}")
+                    # Put back any pending messages we didn't process
+                    for msg in pending_messages:
+                        await self.response_queue.put(msg)
                     return None
                 
                 # Try to get message from queue
                 try:
+                    print(f"Waiting for response type: {expected_type}, message_id: {expected_message_id}")
                     message = await asyncio.wait_for(self.response_queue.get(), timeout=1.0)
-                    if message.type == expected_type or message.type == "error":
-                        return message
+                    print(f"Got message: type={message.type}, message_id={message.message_id}")
+                    
+                    # Check if this is the message we're looking for
+                    if message.type == expected_type:
+                        # For messages that require specific message_id matching
+                        if expected_message_id is not None:
+                            if message.message_id == expected_message_id:
+                                # Put back any pending messages
+                                for msg in pending_messages:
+                                    await self.response_queue.put(msg)
+                                return message
+                            else:
+                                # Not the right message_id, add to pending
+                                pending_messages.append(message)
+                        else:
+                            # No message_id requirement, just type match
+                            # Put back any pending messages
+                            for msg in pending_messages:
+                                await self.response_queue.put(msg)
+                            return message
+                    else:
+                        # Not the right type, add to pending
+                        pending_messages.append(message)
+                        
                 except asyncio.TimeoutError:
                     continue
                     
         except Exception as e:
             logger.error(f"Error waiting for response: {e}")
+            # Put back any pending messages
+            for msg in pending_messages:
+                await self.response_queue.put(msg)
             return None
     
     async def _handle_reconnection(self):

@@ -13,75 +13,76 @@ Usage:
 
 from typing import List
 from llmgineAPI.models.websocket import WSMessage, WSResponse
-from llmgineAPI.core.extensibility import CustomMessageMixin
-from llmgineAPI.models.websocket import MESSAGE_ID
+from pydantic import BaseModel
 
 # ================================ CUSTOM MESSAGE TYPES ================================
 
-class GetEngineTypesRequest(WSMessage, CustomMessageMixin):
-    """Custom message for getting engine types."""
 
-    def __init__(self, session_id: str):
-        super().__init__(
-            type="get_engine_types",
-            data={"session_id": session_id}
-        )
+class GetEngineTypesRequest(WSMessage):
+    """Custom message for getting engine types."""
+    
+    class GetEngineTypesRequestData(BaseModel):
+        session_id: str
+    
+    type: str = "get_engine_types"
+    message_id: str
+    data: GetEngineTypesRequestData
 
 class GetEngineTypesResponse(WSResponse):
     """Custom response for getting engine types."""
 
-    def __init__(self, engine_types: List[str], session_id: str, message_id: MESSAGE_ID):
-        super().__init__(
-            type="get_engine_types_res",
-            message_id=message_id,
-            data={"engine_types": engine_types,
-                  "session_id": session_id}
-        )
+    class GetEngineTypesResponseData(BaseModel):
+        engine_types: List[str]
+        session_id: str
 
-class LinkEngineRequest(WSMessage, CustomMessageMixin):
+    type: str = "get_engine_types_res"
+    message_id: str
+    data: GetEngineTypesResponseData
+
+
+
+class LinkEngineRequest(WSMessage):
     """Custom message for linking an engine."""
-    
-    def __init__(self, engine_type: str, session_id: str):
-        super().__init__(
-            type="link_engine",
-            data={
-                "engine_type": engine_type,
-                "session_id": session_id
-            }
-        )
+
+    class LinkEngineRequestData(BaseModel):
+        engine_type: str
+        session_id: str
+
+    type: str = "link_engine"
+    message_id: str
+    data: LinkEngineRequestData
 
 class LinkEngineResponse(WSResponse):
     """Custom response for linking an engine."""
-    
-    def __init__(self, engine_id: str, session_id: str, message_id: MESSAGE_ID):
-        super().__init__(
-            type="link_engine_res",
-            message_id=message_id,
-            data={
-                "engine_id": engine_id,
-                "session_id": session_id
-            }
-        )
 
-class UseEngineRequest(WSMessage, CustomMessageMixin):
+    class LinkEngineResponseData(BaseModel):
+        engine_id: str
+        session_id: str
+
+    type: str = "link_engine_res"
+    message_id: str
+    data: LinkEngineResponseData
+
+
+
+class UseEngineRequest(WSMessage):
     """Custom message for using a registered engine."""
-    
-    def __init__(self, prompt: str, session_id: str):
-        super().__init__(
-            type="use_engine",
-            data={"prompt": prompt,
-                  "session_id": session_id}
-        )
+
+    class UseEngineRequestData(BaseModel):
+        prompt: str
+        session_id: str
+
+    type: str = "use_engine"
+    message_id: str
+    data: UseEngineRequestData
 
 class UseEngineResponse(WSResponse):
     """Custom response for engine usage."""
-    
-    def __init__(self, result: str, session_id: str, message_id: MESSAGE_ID):
-        super().__init__(
-            type="use_engine_res",
-            message_id=message_id,
-            data={
-                "result": result,
-                "session_id": session_id
-            }
-        )
+
+    class UseEngineResponseData(BaseModel):
+        result: str
+        session_id: str
+
+    type: str = "use_engine_res"
+    message_id: str
+    data: UseEngineResponseData
