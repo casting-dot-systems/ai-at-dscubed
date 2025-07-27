@@ -153,3 +153,8 @@ node_modules/
 *.log
 
 .DS_STORE
+
+# Credential files
+*.pickle
+credentials.json
+token.pickle
