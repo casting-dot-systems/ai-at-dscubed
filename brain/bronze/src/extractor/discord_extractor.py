@@ -54,12 +54,16 @@ class DiscordExtractor:
                     raise ValueError(f"Guild with ID {self.guild_id} not found")
                 
                 for channel in guild.text_channels:
+                    # Get parent_id - this will be the category_id if channel is in a category, otherwise None
+                    parent_id = channel.category_id if hasattr(channel, 'category_id') else None
+                    
                     channels_data.append({
                         "server_id": guild.id,
                         "server_name": guild.name,
                         "channel_id": channel.id,
                         "channel_name": channel.name,
                         "channel_created_at": channel.created_at.isoformat(),
+                        "parent_id": parent_id,  # Add parent_id information
                         "ingestion_timestamp": datetime.now().isoformat(),
                     })
                 

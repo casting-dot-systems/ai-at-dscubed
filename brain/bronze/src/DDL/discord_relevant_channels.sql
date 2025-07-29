@@ -6,12 +6,26 @@ CREATE TABLE IF NOT EXISTS bronze.discord_relevant_channels (
     channel_id BIGINT NOT NULL,
     channel_name VARCHAR(255) NOT NULL,
     channel_created_at TIMESTAMP,
+    parent_id BIGINT,  -- Parent category ID, NULL for root channels
     ingest BOOLEAN DEFAULT FALSE,
     ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     -- composite Primary Key
     PRIMARY KEY (server_id, channel_id)
 );
+
+-- Add parent_id column if it doesn't exist (for existing tables)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'bronze' 
+        AND table_name = 'discord_relevant_channels' 
+        AND column_name = 'parent_id'
+    ) THEN
+        ALTER TABLE bronze.discord_relevant_channels ADD COLUMN parent_id BIGINT;
+    END IF;
+END $$;
 
 
 
