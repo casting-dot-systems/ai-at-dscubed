@@ -37,7 +37,7 @@ def main():
     discord_channels_pipeline.write_dataframe(
         df=df,
         table_name='discord_channels',
-        if_exists='append'
+        if_exists='replace' # Equivalent to truncate + insert in SQL
     )
     
     print("Discord channel pipeline completed successfully!")
