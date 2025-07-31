@@ -74,7 +74,7 @@ class DiscordExtractor:
             channel_type_id = GUILD_TEXT  # Default fallback
         
         if channel_type_id == GUILD_CATEGORY:
-            return 'discord_server'  # Categories are server-level organizational units
+            return 'discord_section'  # Categories are Discord sections/organizational units
         elif channel_type_id == GUILD_FORUM:
             return 'discord_forum'
         elif channel_type_id == GUILD_TEXT:
@@ -140,6 +140,11 @@ class DiscordExtractor:
                     # Get parent_id - this will be the category_id if channel is in a category, otherwise None
                     parent_id = channel.category_id if hasattr(channel, 'category_id') else None
                     
+                    # Get section/category name - this will be the category name if channel is in a category, otherwise None
+                    section_name = None
+                    if hasattr(channel, 'category') and channel.category:
+                        section_name = channel.category.name
+                    
                     # Get Discord entity type
                     entity_type = self._get_discord_entity_type(channel)
                     
@@ -149,8 +154,10 @@ class DiscordExtractor:
                         "channel_id": channel.id,
                         "channel_name": channel.name,
                         "channel_created_at": channel.created_at.isoformat(),
-                        "parent_id": parent_id,  # Add parent_id information
+                        "parent_id": parent_id,  # Category ID for channels in categories, NULL for root channels
+                        "section_name": section_name,  # Add section name information
                         "entity_type": entity_type,  # Add entity type information
+                        "ingest": True,  # Default to False, can be manually set later
                         "ingestion_timestamp": datetime.now().isoformat(),
                     })
                 

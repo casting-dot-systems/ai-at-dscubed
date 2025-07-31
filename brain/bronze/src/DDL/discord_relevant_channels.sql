@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS bronze.discord_relevant_channels (
     channel_name VARCHAR(255) NOT NULL,
     channel_created_at TIMESTAMP,
     parent_id BIGINT,  -- Parent category ID, NULL for root channels
+    section_name VARCHAR(255),  -- Name of the section/category the channel belongs to
     ingest BOOLEAN DEFAULT FALSE,
     ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
@@ -24,6 +25,19 @@ BEGIN
         AND column_name = 'parent_id'
     ) THEN
         ALTER TABLE bronze.discord_relevant_channels ADD COLUMN parent_id BIGINT;
+    END IF;
+END $$;
+
+-- Add section_name column if it doesn't exist (for existing tables)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'bronze' 
+        AND table_name = 'discord_relevant_channels' 
+        AND column_name = 'section_name'
+    ) THEN
+        ALTER TABLE bronze.discord_relevant_channels ADD COLUMN section_name VARCHAR(255);
     END IF;
 END $$;
 

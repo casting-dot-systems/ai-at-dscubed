@@ -55,8 +55,8 @@ def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: s
         raise
 
 def get_bronze_data(engine: Engine) -> pd.DataFrame:
-    """Get Discord channel data from bronze.discord_relevant_channels."""
-    query = "SELECT * FROM bronze.discord_relevant_channels"
+    """Get Discord channel data from bronze.discord_relevant_channels where ingest = TRUE."""
+    query = "SELECT * FROM bronze.discord_relevant_channels WHERE ingest = TRUE" # only ingests relevant channels
     return pd.read_sql(query, engine)
 
 def transform_bronze_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
@@ -69,6 +69,8 @@ def transform_bronze_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
     df['description'] = "___"
     # Use parent_id from bronze data - this will be category_id for channels in categories, NULL for root channels
     df['parent_id'] = df.get('parent_id', None)  # Use parent_id from bronze data
+    # Use section_name from bronze data - this will be the category name for channels in categories, NULL for root channels
+    df['section_name'] = df.get('section_name', None)  # Use section_name from bronze data
     df['date_created'] = df['channel_created_at']
     
     # Select only the columns needed for silver table
@@ -78,6 +80,7 @@ def transform_bronze_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
                'channel_name',
                'description',
                'parent_id',
+               'section_name',
                'date_created']]
 
 def main():
@@ -94,10 +97,10 @@ def main():
         
         # Get bronze data
         bronze_df = get_bronze_data(engine)
-        print(f"✓ Retrieved {len(bronze_df)} records from bronze.discord_relevant_channels")
+        print(f"✓ Retrieved {len(bronze_df)} records from bronze.discord_relevant_channels (where ingest=TRUE)")
         
         if bronze_df.empty:
-            print("⚠️  No data found in bronze.discord_relevant_channels. Please run the bronze pipeline first.")
+            print("⚠️  No channels found with ingest=TRUE in bronze.discord_relevant_channels. Please run the bronze pipeline first or set ingest=TRUE for channels you want to process.")
             return
         
         # Transform the data

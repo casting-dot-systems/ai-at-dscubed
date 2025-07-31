@@ -29,6 +29,9 @@ class ChannelMetaPipeline(SilverPipeline):
         # Use parent_id from bronze data - this will be category_id for channels in categories, NULL for root channels
         df['parent_id'] = df.get('parent_id', None)  # Use parent_id from bronze data
         
+        # Use section_name from bronze data - this will be the category name for channels in categories, NULL for root channels
+        df['section_name'] = df.get('section_name', None)  # Use section_name from bronze data
+        
         # Map channel_created_at to date_created
         df['date_created'] = df['channel_created_at']
 
@@ -38,6 +41,7 @@ class ChannelMetaPipeline(SilverPipeline):
                    'channel_name',
                    'description',
                    'parent_id',
+                   'section_name',
                    'date_created',
                    ]]
 
@@ -69,8 +73,8 @@ class ChannelMetaPipeline(SilverPipeline):
         elif any(keyword in name_lower for keyword in ['voice', 'vc', 'call']):
             return 'discord_channel'  # Could be voice channel
         elif any(keyword in name_lower for keyword in ['category', 'cat']):
-            return 'discord_server'  # Could be category
+            return 'discord_section'  # Could be category
         elif any(keyword in name_lower for keyword in ['forum', 'discussion', 'topic']):
             return 'discord_forum'  # Could be forum
         else:
-            return 'discord_channel'  # Default to text channel
+            return 'discord_channel'  # default, meaning channel doesn't belong to a section
