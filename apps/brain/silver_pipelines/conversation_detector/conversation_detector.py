@@ -276,21 +276,10 @@ class ConversationDetectorEngine:
         """Format messages for LLM input"""
         formatted = []
         for msg in messages:
-            # Map dummy member IDs to valid committee member IDs if needed
-            actual_member_id = self._map_member_id(msg['member_id'])
-            member_name = self.committee_members.get(actual_member_id, {}).get('name', f"Member {msg['member_id']}")
+            member_name = self.committee_members.get(msg['member_id'], {}).get('name', f"Member {msg['member_id']}")
             timestamp = msg['date_created'].strftime('%Y-%m-%d %H:%M:%S')
             formatted.append(f"[{timestamp}] {member_name}: {msg['message']}")
         return "\n".join(formatted)
-
-    def _map_member_id(self, dummy_member_id: int) -> int:
-        """Map dummy member IDs to valid committee member IDs"""
-        # Simple mapping: dummy ID 1 -> committee ID 48, 2 -> 49, etc.
-        # This maps our dummy data (1-11) to actual committee members (48-58)
-        mapping = {
-            1: 48, 2: 49, 3: 50, 4: 51, 5: 52, 6: 53, 7: 54, 8: 55, 9: 56, 10: 57, 11: 58
-        }
-        return mapping.get(dummy_member_id, dummy_member_id)
 
     def _build_conversation_detection_prompt(self, formatted_messages: str, channel_id: int) -> str:
         """Build the LLM prompt for conversation detection"""
@@ -304,7 +293,7 @@ Available committee members:
 
 Please analyze the following messages from channel {channel_id} and:
 
-1. **Detect Conversation Boundaries**: Group messages into distinct conversations based on topic changes, time gaps, and conversation flow. Each conversation should have a clear beginning and end.
+1. **Detect Conversation Boundaries**: Group messages into distinct conversations based on topic changes, time gaps, and conversation flow.
 
 2. **Identify Participants**: For each conversation, identify which committee members participated (use their member IDs from the list above).
 
@@ -338,10 +327,10 @@ Return your response in this exact JSON format:
 Important:
 - Use 0-based indexing for message indices
 - Include all messages in conversations (no gaps)
-- ONLY use member IDs from the committee list above (48-70 range)
+- ONLY use member IDs from the committee list above
 - Write clear, informative summaries
 - Group related messages together even if there are time gaps
-- If you can't identify specific members, use the member IDs from the actual messages
+- Use the member IDs from the actual messages when identifying participants
 """
 
     def _parse_llm_response(self, content: str, messages: List[Dict]) -> List[Dict]:
@@ -419,19 +408,16 @@ Important:
                         
                         # Insert message-conversation links (only if member exists in committee)
                         for message in conversation['messages']:
-                            # Map the member_id to a valid committee member ID
-                            mapped_member_id = self._map_member_id(message['member_id'])
-                            
-                            # Check if the mapped member_id exists in committee before inserting
-                            if mapped_member_id in self.committee_members:
+                            # Check if the member_id exists in committee before inserting
+                            if message['member_id'] in self.committee_members:
                                 session.add(InternalTextChnlMsgConvoMember(
                                     message_id=message['message_id'],
-                                    member_id=mapped_member_id,
+                                    member_id=message['member_id'],
                                     convo_id=convo.convo_id
                                 ))
                                 messages_processed += 1
                             else:
-                                logger.warning(f"Skipping message {message['message_id']} - mapped member_id {mapped_member_id} not found in committee")
+                                logger.warning(f"Skipping message {message['message_id']} - member_id {message['member_id']} not found in committee")
                         
                         conversations_inserted += 1
                         logger.info(f"Inserted conversation {convo.convo_id} with {len(conversation['messages'])} messages")
