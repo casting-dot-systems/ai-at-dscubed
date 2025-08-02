@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS bronze.discord_relevant_channels (
     channel_created_at TIMESTAMP,
     parent_id BIGINT,  -- Parent category ID, NULL for root channels
     section_name VARCHAR(255),  -- Name of the section/category the channel belongs to
-    ingest BOOLEAN DEFAULT FALSE,
+    ingest BOOLEAN DEFAULT TRUE,
     ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     -- composite Primary Key
