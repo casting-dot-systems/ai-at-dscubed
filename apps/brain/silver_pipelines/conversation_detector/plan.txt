@@ -6,19 +6,4 @@ Use LLM to:
 group data (rows/messages) under different 'conversation topics - convoID'
 identify members (member_id) involved in the conversation
 create a summary (review transcript_integrator/enchanced_summariser.py) for the conversation
-4, Take LLM output and insert data into silver.convo_message, convo_member, convo_summary
-
-Sorry, I won't be able to make it today. But, I just finished the full conversation detection engine.
-Here's a little description of the engine:
-1, Take data rows (message_id, member_id, messages, creation_date, etc.) from silver.int_text_channel_messages table
-2, Feed data into LLM alongside any additional context information (silver.committee table, etc.)
-3, (single long 3-part prompt)
-Use LLM to:
-group data (rows/messages) under different 'conversation topics - convoID'
-identify members (member_id) involved in the conversation
-create a summary (review transcript_integrator/enchanced_summariser.py) for the conversation
-4, Take LLM output and insert data into silver.internal_text_channel_convos, silver.internal_text_chnl_convo_members, silver.internal_text_chnl_msg_convo_member on online database
-
-I've tested the engine with dummy data, and confirmed that it does indeed function. Please have a look when you guys have time.
-Btw, it's in the /brain branch in the ai-at-dscubed repo (apps/brain/silver_pipelines/conversation_detector/conversation_detector.py)
-
+4, Take LLM output and insert data into silver.internal_text_channel_convos, silver.internal_text_chnl_convo_members, silver.internal_text_chnl_msg_convo_member on online database.
