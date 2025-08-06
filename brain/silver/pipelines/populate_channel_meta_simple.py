@@ -65,14 +65,47 @@ def transform_bronze_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
     """Transform bronze data to silver format."""
     df = bronze_df.copy()
     
+    # Debug: Print available columns and sample entity_type values
+    print(f"📊 Bronze data columns: {list(df.columns)}")
+    if 'entity_type' in df.columns:
+        entity_type_counts = df['entity_type'].value_counts()
+        print(f"📊 Entity type distribution: {entity_type_counts.to_dict()}")
+        print("📊 Specific channel types detected:")
+        for entity_type, count in entity_type_counts.items():
+            if entity_type == 'discord_text_channel':
+                print(f"   - Text channels: {count}")
+            elif entity_type == 'discord_voice_channel':
+                print(f"   - Voice channels: {count}")
+            elif entity_type == 'discord_forum':
+                print(f"   - Forum channels: {count}")
+            elif entity_type == 'discord_section':
+                print(f"   - Categories/Sections: {count}")
+            elif entity_type == 'discord_news_channel':
+                print(f"   - News channels: {count}")
+            elif entity_type == 'discord_stage_channel':
+                print(f"   - Stage voice channels: {count}")
+            else:
+                print(f"   - Other ({entity_type}): {count}")
+    else:
+        print("⚠️  Warning: entity_type column not found in bronze data")
+    
     # Map bronze columns to new silver schema
-    # bronze: channel_id, channel_name, channel_created_at, parent_id, section_name
+    # bronze: channel_id, channel_name, channel_created_at, parent_id, section_name, entity_type
     # silver: component_id, platform_name, component_type, parent_component_id, component_name, created_at, section_name
+    
+    # Use entity_type from bronze data if available, otherwise default to discord_text_channel
+    component_type = df.get('entity_type', 'discord_text_channel')
+    if isinstance(component_type, pd.Series):
+        # If entity_type is a series, use it as is
+        component_type_values = component_type
+    else:
+        # If entity_type is a single value or None, fill with default
+        component_type_values = 'discord_text_channel'
     
     silver_df = pd.DataFrame({
         'component_id': df['channel_id'],  # Map channel_id to component_id
         'platform_name': 'Discord',  # Set platform
-        'component_type': 'discord_channel',  # Set component type
+        'component_type': component_type_values,  # Use actual entity_type from bronze
         'parent_component_id': df.get('parent_id', None),  # Map parent_id to parent_component_id
         'component_name': df['channel_name'],  # Map channel_name to component_name
         'created_at': df['channel_created_at'],  # Map channel_created_at to created_at

@@ -17,11 +17,11 @@ class ChannelMetaPipeline(SilverPipeline):
         # TODO: make this platform agnostic, how to detect platform?
         df['source_name'] = "Discord"
 
-        # Use actual entity_type from bronze data if available, otherwise default to discord_channel
+        # Use actual entity_type from bronze data if available, otherwise default to discord_text_channel
         if 'entity_type' in df.columns:
             df['channel_type'] = df['entity_type']
         else:
-            df['channel_type'] = 'discord_channel'
+            df['channel_type'] = 'discord_text_channel'
 
         # TODO: is this manually written by us or by LLM?
         df['description'] = "___"
@@ -69,12 +69,12 @@ class ChannelMetaPipeline(SilverPipeline):
         
         # Common patterns in channel names
         if any(keyword in name_lower for keyword in ['announcement', 'news', 'update']):
-            return 'discord_channel'  # Could be news channel
+            return 'discord_news_channel'  # Could be news channel
         elif any(keyword in name_lower for keyword in ['voice', 'vc', 'call']):
-            return 'discord_channel'  # Could be voice channel
+            return 'discord_voice_channel'  # Could be voice channel
         elif any(keyword in name_lower for keyword in ['category', 'cat']):
             return 'discord_section'  # Could be category
         elif any(keyword in name_lower for keyword in ['forum', 'discussion', 'topic']):
             return 'discord_forum'  # Could be forum
         else:
-            return 'discord_channel'  # default, meaning channel doesn't belong to a section
+            return 'discord_text_channel'  # default, most channels are text channels

@@ -73,20 +73,21 @@ class DiscordExtractor:
         else:
             channel_type_id = GUILD_TEXT  # Default fallback
         
+        # Return more specific entity types for better distinction
         if channel_type_id == GUILD_CATEGORY:
             return 'discord_section'  # Categories are Discord sections/organizational units
         elif channel_type_id == GUILD_FORUM:
             return 'discord_forum'
         elif channel_type_id == GUILD_TEXT:
-            return 'discord_channel'
+            return 'discord_text_channel'  # Specific type for text channels
         elif channel_type_id == GUILD_VOICE:
-            return 'discord_channel'
+            return 'discord_voice_channel'  # Specific type for voice channels
         elif channel_type_id == GUILD_NEWS:
-            return 'discord_channel'
+            return 'discord_news_channel'  # Specific type for news channels
         elif channel_type_id == GUILD_STAGE_VOICE:
-            return 'discord_channel'
+            return 'discord_stage_channel'  # Specific type for stage voice channels
         else:
-            return 'discord_channel'  # Default fallback
+            return 'discord_text_channel'  # Default fallback to text channel
     
     def _get_thread_entity_type(self, thread) -> str:
         """Get Discord thread entity type."""
