@@ -356,7 +356,6 @@ Write a clear, structured summary that captures the essential information from t
         except Exception as e:
             print(f"Error generating summary for {transcript_file['file_name']}: {e}")
             return None
-
     async def _update_meeting_summary(self, transcript_link: str, summary: str) -> bool:
         """Update meeting summary in the database"""
         try:
