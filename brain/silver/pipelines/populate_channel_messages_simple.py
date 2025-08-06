@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Simple script to populate the internal text channel messages table.
-This script transforms bronze.discord_chats data to silver.internal_text_channel_messages.
+Simple script to populate the internal_msg_message table.
+This script transforms bronze.discord_chats data to silver.internal_msg_message.
 """
 
 import os
@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import sqlalchemy as sa
 from sqlalchemy.engine import Engine
 import pandas as pd
+import datetime
 
 # Load environment variables
 load_dotenv()
@@ -41,13 +42,20 @@ def execute_ddl(engine: Engine, ddl_path: str) -> None:
 def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: str = 'silver') -> None:
     """Write DataFrame to database."""
     try:
-        df.to_sql(
-            table_name,
-            engine,
-            schema=schema,
-            if_exists='replace',
-            index=False
-        )
+        print(f"📊 About to write {len(df)} rows to {schema}.{table_name}")
+        print(f"📊 DataFrame columns: {list(df.columns)}")
+        print(f"📊 Sample data:")
+        print(df.head(3))
+        
+        with engine.connect() as conn:
+            df.to_sql(
+                table_name,
+                conn,
+                schema=schema,
+                if_exists='replace',
+                index=False
+            )
+            conn.commit()  # Explicit commit
         print(f"✓ Successfully wrote data to {schema}.{table_name}")
         
     except Exception as e:
@@ -56,13 +64,15 @@ def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: s
 
 def get_bronze_messages(engine: Engine) -> pd.DataFrame:
     """Get Discord chat data from bronze.discord_chats."""
-    query = "SELECT * FROM bronze.discord_chats"
-    return pd.read_sql(query, engine)
+    query = sa.text("SELECT * FROM bronze.discord_chats")
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
 
 def get_committee_data(engine: Engine) -> pd.DataFrame:
     """Get committee data from silver.committee for member_id lookup."""
-    query = "SELECT member_id, discord_id FROM silver.committee"
-    return pd.read_sql(query, engine)
+    query = sa.text("SELECT member_id, discord_id FROM silver.committee")
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
 
 def transform_bronze_to_silver_messages(bronze_df: pd.DataFrame, committee_df: pd.DataFrame) -> pd.DataFrame:
     """Transform bronze chat data to silver messages format with proper member_id lookup.
@@ -76,8 +86,8 @@ def transform_bronze_to_silver_messages(bronze_df: pd.DataFrame, committee_df: p
     discord_to_member = dict(zip(committee_df['discord_id'], committee_df['member_id']))
     
     # Map bronze columns to silver columns
-    # bronze: message_id, discord_user_id, channel_id, content, chat_created_at
-    # silver: message_id, member_id, channel_id, message, date_created
+    # bronze: message_id, discord_user_id, channel_id, content, chat_created_at, chat_edited_at
+    # silver: message_id (auto-generated), member_id, component_id, msg_txt, msg_type, sent_at, edited_at
     
     # Map discord_user_id to member_id using committee lookup
     df['member_id'] = df['discord_user_id'].map(discord_to_member)
@@ -95,26 +105,31 @@ def transform_bronze_to_silver_messages(bronze_df: pd.DataFrame, committee_df: p
     # For non-committee members, use negative discord_user_id as member_id
     df.loc[unmapped_mask, 'member_id'] = -df.loc[unmapped_mask, 'discord_user_id']
     
+    # Determine message type based on thread information
+    df['msg_type'] = df.apply(lambda row: 'thread_message' if row.get('is_thread', False) else 'channel_message', axis=1)
+    
     silver_df = pd.DataFrame({
-        'message_id': df['message_id'],
         'member_id': df['member_id'].astype(int),  # Positive: committee member_id, Negative: non-committee discord_user_id
-        'channel_id': df['channel_id'],
-        'message': df['content'],  # Map content to message
-        'date_created': df['chat_created_at']  # Map chat_created_at to date_created
+        'component_id': df['channel_id'],  # Map channel_id to component_id
+        'msg_txt': df['content'],  # Map content to msg_txt
+        'msg_type': df['msg_type'],  # Message type (channel_message or thread_message)
+        'sent_at': df['chat_created_at'],  # Map chat_created_at to sent_at
+        'edited_at': df.get('chat_edited_at', None),  # Map chat_edited_at to edited_at
+        'ingestion_timestamp': datetime.datetime.now()  # Current timestamp
     })
     
     return silver_df
 
 def main():
-    """Main function to populate the internal text channel messages table."""
-    print("Starting internal text channel messages population...")
+    """Main function to populate the internal_msg_message table."""
+    print("Starting internal_msg_message population...")
     
     # Create database engine
     engine = create_db_engine()
     
     try:
         # Execute DDL to create the silver table if it doesn't exist
-        ddl_path = Path(__file__).parent.parent / "src" / "DDL" / "internal_text_channel_messages.sql"
+        ddl_path = Path(__file__).parent.parent / "src" / "DDL" / "internal_msg_message.sql"
         execute_ddl(engine, str(ddl_path))
         
         # Get bronze data
@@ -137,9 +152,9 @@ def main():
         print(f"✓ Transformed data: {len(silver_df)} records")
         
         # Write to silver table
-        write_dataframe(engine, silver_df, 'internal_text_channel_messages', 'silver')
+        write_dataframe(engine, silver_df, 'internal_msg_message', 'silver')
         
-        print("\n🎉 Internal text channel messages population completed successfully!")
+        print("\n🎉 internal_msg_message population completed successfully!")
         print(f"Populated {len(silver_df)} message records")
         
         # Show breakdown of committee vs non-committee messages
@@ -147,6 +162,12 @@ def main():
         non_committee_messages = len(silver_df[silver_df['member_id'] < 0])
         print(f"   - Committee members: {committee_messages} messages")
         print(f"   - Non-committee members: {non_committee_messages} messages")
+        
+        # Show breakdown by message type
+        channel_messages = len(silver_df[silver_df['msg_type'] == 'channel_message'])
+        thread_messages = len(silver_df[silver_df['msg_type'] == 'thread_message'])
+        print(f"   - Channel messages: {channel_messages}")
+        print(f"   - Thread messages: {thread_messages}")
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")

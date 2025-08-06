@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple script to populate the internal text channel meta table.
+Simple script to populate the internal_msg_component table.
 This script directly transforms bronze data to silver without using the pipeline classes.
 """
 
@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import sqlalchemy as sa
 from sqlalchemy.engine import Engine
 import pandas as pd
+import datetime
 
 # Load environment variables
 load_dotenv()
@@ -56,43 +57,42 @@ def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: s
 
 def get_bronze_data(engine: Engine) -> pd.DataFrame:
     """Get Discord channel data from bronze.discord_relevant_channels where ingest = TRUE."""
-    query = "SELECT * FROM bronze.discord_relevant_channels WHERE ingest = TRUE" # only ingests relevant channels
-    return pd.read_sql(query, engine)
+    query = sa.text("SELECT * FROM bronze.discord_relevant_channels WHERE ingest = TRUE") # only ingests relevant channels
+    with engine.connect() as conn:
+        return pd.read_sql(query, conn)
 
 def transform_bronze_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
     """Transform bronze data to silver format."""
     df = bronze_df.copy()
     
-    # Add silver-specific columns
-    df['source_name'] = "Discord"
-    df['channel_type'] = 'discord_channel'
-    df['description'] = "___"
-    # Use parent_id from bronze data - this will be category_id for channels in categories, NULL for root channels
-    df['parent_id'] = df.get('parent_id', None)  # Use parent_id from bronze data
-    # Use section_name from bronze data - this will be the category name for channels in categories, NULL for root channels
-    df['section_name'] = df.get('section_name', None)  # Use section_name from bronze data
-    df['date_created'] = df['channel_created_at']
+    # Map bronze columns to new silver schema
+    # bronze: channel_id, channel_name, channel_created_at, parent_id, section_name
+    # silver: component_id, platform_name, component_type, parent_component_id, component_name, created_at, section_name
     
-    # Select only the columns needed for silver table
-    return df[['channel_id', 
-               'source_name', 
-               'channel_type',
-               'channel_name',
-               'description',
-               'parent_id',
-               'section_name',
-               'date_created']]
+    silver_df = pd.DataFrame({
+        'component_id': df['channel_id'],  # Map channel_id to component_id
+        'platform_name': 'Discord',  # Set platform
+        'component_type': 'discord_channel',  # Set component type
+        'parent_component_id': df.get('parent_id', None),  # Map parent_id to parent_component_id
+        'component_name': df['channel_name'],  # Map channel_name to component_name
+        'created_at': df['channel_created_at'],  # Map channel_created_at to created_at
+        'archived_at': None,  # Not available in bronze data
+        'ingestion_timestamp': datetime.datetime.now(),  # Current timestamp
+        'section_name': df.get('section_name', None)  # Map section_name
+    })
+    
+    return silver_df
 
 def main():
-    """Main function to populate the internal text channel meta table."""
-    print("Starting internal text channel meta population...")
+    """Main function to populate the internal_msg_component table."""
+    print("Starting internal_msg_component population...")
     
     # Create database engine
     engine = create_db_engine()
     
     try:
         # Execute DDL to create the silver table if it doesn't exist
-        ddl_path = Path(__file__).parent.parent / "src" / "DDL" / "internal_text_channel_meta.sql"
+        ddl_path = Path(__file__).parent.parent / "src" / "DDL" / "internal_msg_component.sql"
         execute_ddl(engine, str(ddl_path))
         
         # Get bronze data
@@ -108,10 +108,10 @@ def main():
         print(f"✓ Transformed data: {len(silver_df)} records")
         
         # Write to silver table
-        write_dataframe(engine, silver_df, 'internal_text_channel_meta', 'silver')
+        write_dataframe(engine, silver_df, 'internal_msg_component', 'silver')
         
-        print("\n🎉 Internal text channel meta population completed successfully!")
-        print(f"Populated {len(silver_df)} channel records")
+        print("\n🎉 internal_msg_component population completed successfully!")
+        print(f"Populated {len(silver_df)} component records")
         
     except Exception as e:
         print(f"❌ Error: {str(e)}")
