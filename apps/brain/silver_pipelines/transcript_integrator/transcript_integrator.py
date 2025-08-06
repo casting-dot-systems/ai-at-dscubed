@@ -37,23 +37,10 @@ except ImportError:
     GOOGLE_DRIVE_AVAILABLE = False
     print("Warning: Google Drive API not available. Install with: pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client")
 
-# Enhanced summariser import
-from . import enhanced_summariser
-
 # Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Find the project root (ai-at-dscubed) dynamically
-current_dir = os.path.abspath(os.path.dirname(__file__))
-while not os.path.exists(os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')):
-    parent = os.path.dirname(current_dir)
-    if parent == current_dir:
-        raise FileNotFoundError("Could not find 'libs/brain/silver/DML' in any parent directory.")
-    current_dir = parent
-
-DML_DIR = os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')
-print("DML_DIR being used:", DML_DIR)
 SCOPES = ['https://www.googleapis.com/auth/drive']
 Base = declarative_base()
 
@@ -69,18 +56,6 @@ if DATABASE_URL and DATABASE_URL.startswith('postgresql://'):
     # Optionally, warn if the user is not using asyncpg
 elif DATABASE_URL and DATABASE_URL.startswith('postgresql+psycopg2://'):
     DATABASE_URL = DATABASE_URL.replace('postgresql+psycopg2://', 'postgresql+asyncpg://', 1)
-
-# Paths
-committee_file = os.path.join(DML_DIR, 'committee.sql')
-project_file = os.path.join(DML_DIR, 'project.sql')
-print("Looking for committee.sql at:", committee_file, "Exists?", os.path.exists(committee_file))
-print("Looking for project.sql at:", project_file, "Exists?", os.path.exists(project_file))
-if os.path.exists(committee_file):
-    with open(committee_file, 'r', encoding='utf-8') as f:
-        print("First 5 lines of committee.sql:", [next(f) for _ in range(5)])
-if os.path.exists(project_file):
-    with open(project_file, 'r', encoding='utf-8') as f:
-        print("First 5 lines of project.sql:", [next(f) for _ in range(5)])
 
 @dataclass
 class IntegrateTranscriptsCommand(Command):
@@ -133,6 +108,13 @@ class Project(Base):
     __table_args__ = {'schema': 'silver'}
     project_id = Column(Integer, primary_key=True, autoincrement=True)
     project_name = Column(String)
+    project_description = Column(Text)
+
+class ProjectMember(Base):
+    __tablename__ = 'project_members'
+    __table_args__ = {'schema': 'silver'}
+    project_id = Column(Integer, ForeignKey('silver.project.project_id', ondelete='CASCADE'), primary_key=True)
+    member_id = Column(Integer, ForeignKey('silver.committee.member_id', ondelete='CASCADE'), primary_key=True)
 
 class TranscriptIntegratorEngine:
     def __init__(self, model: Any, session_id: Optional[SessionID] = None):
@@ -145,16 +127,19 @@ class TranscriptIntegratorEngine:
         self.engine_id = str(os.urandom(8).hex())
         self.committee_members = None  # Will be loaded asynchronously
         self.projects = None           # Will be loaded asynchronously
-        self.project_members = self._load_project_members()  # If you want to keep this from DML, that's fine
+        self.project_members = None    # Will be loaded from database
         self.drive_service = None
         self.engine = create_async_engine(DATABASE_URL, echo=False, future=True)
         self.async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
     async def async_setup(self):
+        """Load all context information from the database"""
         self.committee_members = await self._load_committee_members_from_db()
         self.projects = await self._load_projects_from_db()
+        self.project_members = await self._load_project_members_from_db()
 
     async def _load_committee_members_from_db(self):
+        """Load committee members from the database"""
         members = {}
         async with self.async_session() as session:
             result = await session.execute(
@@ -165,31 +150,31 @@ class TranscriptIntegratorEngine:
         return members
 
     async def _load_projects_from_db(self):
+        """Load projects from the database"""
         projects = {}
         async with self.async_session() as session:
             result = await session.execute(
-                select(Project.project_id, Project.project_name)
+                select(Project.project_id, Project.project_name, Project.project_description)
             )
-            for project_id, name in result.fetchall():
-                projects[name.lower()] = {'id': project_id, 'name': name}
+            for project_id, name, description in result.fetchall():
+                projects[name.lower()] = {
+                    'id': project_id, 
+                    'name': name,
+                    'summary': description or ''  # Include project description for enhanced summaries
+                }
         return projects
 
-    def _load_project_members(self) -> Dict[int, List[int]]:
-        """
-        Load project-member relationships from project_members.sql.
-        """
+    async def _load_project_members_from_db(self) -> Dict[int, List[int]]:
+        """Load project-member relationships from the database"""
         project_members: Dict[int, List[int]] = {}
-        project_members_file = os.path.join(DML_DIR, 'project_members.sql')
-        if os.path.exists(project_members_file):
-            with open(project_members_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                matches = re.findall(r"\((\d+), (\d+),", content)
-                for project_id, member_id in matches:
-                    project_id = int(project_id)
-                    member_id = int(member_id)
-                    if project_id not in project_members:
-                        project_members[project_id] = []
-                    project_members[project_id].append(member_id)
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(ProjectMember.project_id, ProjectMember.member_id)
+            )
+            for project_id, member_id in result.fetchall():
+                if project_id not in project_members:
+                    project_members[project_id] = []
+                project_members[project_id].append(member_id)
         return project_members
 
     async def handle_command(self, command: Command) -> CommandResult:
@@ -197,12 +182,9 @@ class TranscriptIntegratorEngine:
         Entrypoint for llmgine command handling.
         """
         try:
-            if isinstance(command, IntegrateTranscriptsCommand):
-                google_drive_url = command.google_drive_folder_url
-            else:
-                google_drive_url = getattr(command, 'google_drive_folder_url', None)
-                if not google_drive_url:
-                    raise ValueError("No google_drive_folder_url provided in command.")
+            google_drive_url = getattr(command, 'google_drive_folder_url', None)
+            if not google_drive_url:
+                raise ValueError("No google_drive_folder_url provided in command.")
             result = await self.integrate_transcripts(google_drive_url)
             return CommandResult(success=True, result=result, session_id=self.session_id)
         except Exception as e:
@@ -319,13 +301,9 @@ class TranscriptIntegratorEngine:
                 prompt = self._build_prompt(meeting_type, meeting_date, file_path)
                 # Extract members/projects using GPT-4.1
                 extraction = await self._extract_meeting_info(prompt)
-                # Generate summary using enhanced_summariser
-                summary = await enhanced_summariser.generate_summary_async(
-                    file_path,
-                    self.projects,
-                    self.committee_members
-                )
-                print(f"[DEBUG] Summary returned by generate_summary_async for {file_name}:\n{summary}\n{'='*40}")
+                # Generate enhanced summary using integrated summariser
+                summary = await self._generate_enhanced_summary(file_path)
+                print(f"[DEBUG] Enhanced summary generated for {file_name}:\n{summary}\n{'='*40}")
                 # Insert into DB
                 async with self.async_session() as session:
                     async with session.begin():
@@ -393,7 +371,7 @@ class TranscriptIntegratorEngine:
         with open(transcript_path, 'r', encoding='utf-8') as f:
             transcript_content = f.read()
         committee_context = "\n".join([f"- {m['name']}" for m in self.committee_members.values()])
-        project_context = "\n".join([f"- {p['name']}" for p in self.projects.values()])
+        project_context = "\n".join([f"- {p['name']}: {p['summary']}" for p in self.projects.values()])
         if meeting_type == 'lecture':
             prompt = f"""
 You are an expert at analyzing meeting transcripts and extracting structured information.
@@ -401,7 +379,7 @@ You are an expert at analyzing meeting transcripts and extracting structured inf
 Available committee members:
 {committee_context}
 
-Available projects:
+Available projects and their descriptions:
 {project_context}
 
 This is a lecture. Only one member (the speaker) is participating. Disregard anyone else mentioned.
@@ -430,7 +408,7 @@ You are an expert at analyzing meeting transcripts and extracting structured inf
 Available committee members:
 {committee_context}
 
-Available projects:
+Available projects and their descriptions:
 {project_context}
 
 This is a workshop. Multiple members may participate.
@@ -493,6 +471,88 @@ Return your response in this exact JSON format:
                 else:
                     print(f"No match for project: {name}")
         return {'member_ids': member_ids, 'project_ids': project_ids}
+
+    async def _generate_enhanced_summary(self, transcript_path: str) -> str:
+        """
+        Generate an enhanced summary for a transcript file using project and committee context.
+        """
+        try:
+            with open(transcript_path, 'r', encoding='utf-8') as f:
+                transcript_content = f.read()
+            
+            # Create enhanced prompt with project context
+            prompt = f"""
+You are an expert meeting summariser. Given the following meeting transcript and project information, write a concise but detailed summary of the meeting.
+
+Available projects and their descriptions:
+{self._format_projects()}
+
+Available committee members:
+{self._format_committee_members()}
+
+Please analyze the meeting transcript and create a comprehensive summary that:
+1. Identifies the main topics discussed
+2. Lists key decisions made
+3. Mentions any action items or next steps
+4. Relates discussions to relevant projects when possible
+5. Identifies which committee members participated in key discussions
+6. Highlights any important deadlines or milestones mentioned
+
+Meeting Transcript:
+{transcript_content}
+
+Write a clear, structured summary that captures the essential information from this meeting:
+"""
+            
+            response = await self.model.generate(messages=[{"role": "user", "content": prompt}])
+            summary = response.raw.choices[0].message.content or ""
+            
+            if summary:
+                print(f"Generated enhanced summary for transcript")
+                return summary.strip()
+            else:
+                print(f"No enhanced summary generated for transcript")
+                return ""
+                
+        except Exception as e:
+            print(f"Error generating enhanced summary: {e}")
+            return ""
+
+    def _format_committee_members(self) -> str:
+        """Format committee members for prompt"""
+        return "\n".join([f"- {member['name']}" for member in self.committee_members.values()])
+
+    def _format_projects(self) -> str:
+        """Format projects for prompt"""
+        return "\n".join([f"- {project['name']}: {project['summary']}" for project in self.projects.values()])
+
+    async def _update_existing_meeting_summary(self, meeting_name: str, summary: str) -> bool:
+        """
+        Update an existing meeting summary in the database.
+        """
+        try:
+            async with self.async_session() as session:
+                result = await session.execute(
+                    select(Meeting.meeting_id).where(Meeting.name == meeting_name)
+                )
+                meeting = result.scalar_one_or_none()
+                
+                if meeting:
+                    await session.execute(
+                        Meeting.__table__.update().where(
+                            Meeting.meeting_id == meeting
+                        ).values(meeting_summary=summary)
+                    )
+                    await session.commit()
+                    print(f"Updated meeting {meeting} with enhanced summary")
+                    return True
+                else:
+                    print(f"Meeting '{meeting_name}' not found in database")
+                    return False
+                    
+        except Exception as e:
+            print(f"Error updating meeting summary: {e}")
+            return False
 
     def _extract_folder_id_from_url(self, url: str) -> Optional[str]:
         """
@@ -570,21 +630,24 @@ async def main():
     await bootstrap.bootstrap()
     model = Gpt41Mini(Providers.OPENAI)
     engine = TranscriptIntegratorEngine(model)
-    await engine.async_setup() # Added this line to load committee members
+    await engine.async_setup() # Load all context from database
     cli = EngineCLI(engine.session_id)
     cli.register_engine(engine)
     cli.register_engine_command(IntegrateTranscriptsCommand, engine.handle_command)
     cli.register_engine_result_component(EngineResultComponent)
     cli.register_loading_event(IntegrationStatusEvent)
-    print("Transcript Integrator Engine")
+    print("Enhanced Transcript Integrator Engine")
     print("=" * 40)
-    print("This engine will download transcripts from Google Drive, extract info, and insert into the database.")
+    print("This engine will download transcripts from Google Drive, extract info,")
+    print("generate enhanced summaries, and insert everything into the database.")
     print("Make sure you have set up Google Drive API credentials (credentials.json)")
     print()
+    
     google_drive_url = input("Enter Google Drive folder URL: ").strip()
     if not google_drive_url:
         print("No URL provided. Exiting.")
         return
+    
     command = IntegrateTranscriptsCommand(google_drive_folder_url=google_drive_url)
     result = await engine.handle_command(command)
     if result.success:
@@ -592,7 +655,8 @@ async def main():
         data = result.result
         print(f"Meetings processed: {data['meetings_processed']}")
         print(f"Members identified: {data['members_identified']}")
-        print(f"Projects linked: {data['projects_linked']}\n")
+        print(f"Projects linked: {data['projects_linked']}")
+        print(f"Enhanced summaries generated: {data['meetings_processed']}\n")
     else:
         print(f"Error: {result.error}")
 

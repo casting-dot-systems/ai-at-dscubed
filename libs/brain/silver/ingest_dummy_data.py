@@ -30,7 +30,7 @@ class DummyDataIngester:
         """Ingest dummy data from the SQL file"""
         try:
             # Read the dummy data SQL file
-            sql_file_path = os.path.join(os.path.dirname(__file__), 'dummy_data.sql')
+            sql_file_path = os.path.join(os.path.dirname(__file__), 'realistic_dummy_data_v2.sql')
             
             if not os.path.exists(sql_file_path):
                 logger.error(f"❌ SQL file not found: {sql_file_path}")

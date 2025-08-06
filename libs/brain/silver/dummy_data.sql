@@ -37,24 +37,24 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 
 -- Conversation 3: New Project Proposal (18 messages)
 INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
-(1028, 3, 1, 'I have an idea for a new project. What do you think about building a team productivity dashboard?', '2024-01-17 10:30:00'),
-(1029, 1, 1, 'That sounds interesting! What would it include?', '2024-01-17 10:32:00'),
-(1030, 3, 1, 'Task tracking, time management, team collaboration metrics, and project progress visualization', '2024-01-17 10:35:00'),
-(1031, 5, 1, 'We could integrate it with our existing tools like Notion and Discord', '2024-01-17 10:37:00'),
-(1032, 2, 1, 'What''s the timeline for this project?', '2024-01-17 10:40:00'),
-(1033, 3, 1, 'I estimate 3-4 months for a full MVP. We could have a basic version in 6 weeks', '2024-01-17 10:42:00'),
-(1034, 11, 1, 'This could really help with our project management. I''m in!', '2024-01-17 10:45:00'),
-(1035, 4, 1, 'What''s the tech stack you''re thinking of using?', '2024-01-17 10:47:00'),
-(1036, 3, 1, 'React frontend, Node.js backend, PostgreSQL database. Maybe some AI features for insights', '2024-01-17 10:50:00'),
-(1037, 8, 1, 'I can help with the UI/UX design and user research', '2024-01-17 10:52:00'),
-(1038, 5, 1, 'We should definitely include some AI-powered analytics. Could be a great selling point', '2024-01-17 10:55:00'),
-(1039, 1, 1, 'Let''s create a project proposal document and present it to the board', '2024-01-17 10:57:00'),
-(1040, 3, 1, 'I''ll draft the proposal this week and share it with everyone for feedback', '2024-01-17 11:00:00'),
-(1041, 9, 1, 'What''s the estimated budget for this project?', '2024-01-17 11:02:00'),
-(1042, 3, 1, 'Initial estimate is $15,000 for development and $5,000 for infrastructure', '2024-01-17 11:05:00'),
-(1043, 2, 1, 'I can help with the technical architecture and development planning', '2024-01-17 11:07:00'),
-(1044, 11, 1, 'Let''s set up a project kickoff meeting once the proposal is ready', '2024-01-17 11:10:00'),
-(1045, 1, 1, 'Great initiative! Looking forward to seeing the proposal', '2024-01-17 11:12:00');
+(1028, 3, 10, 'I have an idea for a new project. What do you think about building a team productivity dashboard?', '2024-01-17 10:30:00'),
+(1029, 1, 10, 'That sounds interesting! What would it include?', '2024-01-17 10:32:00'),
+(1030, 3, 10, 'Task tracking, time management, team collaboration metrics, and project progress visualization', '2024-01-17 10:35:00'),
+(1031, 5, 10, 'We could integrate it with our existing tools like Notion and Discord', '2024-01-17 10:37:00'),
+(1032, 2, 10, 'What''s the timeline for this project?', '2024-01-17 10:40:00'),
+(1033, 3, 10, 'I estimate 3-4 months for a full MVP. We could have a basic version in 6 weeks', '2024-01-17 10:42:00'),
+(1034, 11, 10, 'This could really help with our project management. I''m in!', '2024-01-17 10:45:00'),
+(1035, 4, 10, 'What''s the tech stack you''re thinking of using?', '2024-01-17 10:47:00'),
+(1036, 3, 10, 'React frontend, Node.js backend, PostgreSQL database. Maybe some AI features for insights', '2024-01-17 10:50:00'),
+(1037, 8, 10, 'I can help with the UI/UX design and user research', '2024-01-17 10:52:00'),
+(1038, 5, 10, 'We should definitely include some AI-powered analytics. Could be a great selling point', '2024-01-17 10:55:00'),
+(1039, 1, 10, 'Let''s create a project proposal document and present it to the board', '2024-01-17 10:57:00'),
+(1040, 3, 10, 'I''ll draft the proposal this week and share it with everyone for feedback', '2024-01-17 11:00:00'),
+(1041, 9, 10, 'What''s the estimated budget for this project?', '2024-01-17 11:02:00'),
+(1042, 3, 10, 'Initial estimate is $15,000 for development and $5,000 for infrastructure', '2024-01-17 11:05:00'),
+(1043, 2, 10, 'I can help with the technical architecture and development planning', '2024-01-17 11:07:00'),
+(1044, 11, 10, 'Let''s set up a project kickoff meeting once the proposal is ready', '2024-01-17 11:10:00'),
+(1045, 1, 10, 'Great initiative! Looking forward to seeing the proposal', '2024-01-17 11:12:00');
 
 -- Conversation 4: Team Structure Discussion (10 messages)
 INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
