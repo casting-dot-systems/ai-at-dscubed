@@ -2,7 +2,7 @@ import pandas as pd
 import re
 import openpyxl
 
-def output_processor(meeting_summary: str, topic_names: pd.DataFrame):
+def output_processor(meeting_summary: str):
     """
     Extracts topics and their descriptions from a structured meeting summary.
     
@@ -44,8 +44,7 @@ def output_processor(meeting_summary: str, topic_names: pd.DataFrame):
 file=open("summary.txt", "r")
 meeting_summary = file.read()
 file.close()
-topic_names = 0
-output_processor(meeting_summary, topic_names)
+output_processor(meeting_summary)
 
 
 

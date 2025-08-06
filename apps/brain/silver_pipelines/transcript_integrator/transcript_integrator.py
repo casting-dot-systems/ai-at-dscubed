@@ -592,7 +592,7 @@ async def main():
         data = result.result
         print(f"Meetings processed: {data['meetings_processed']}")
         print(f"Members identified: {data['members_identified']}")
-        print(f"Projects linked: {data['projects_linked']}")
+        print(f"Projects linked: {data['projects_linked']}\n")
     else:
         print(f"Error: {result.error}")
 
