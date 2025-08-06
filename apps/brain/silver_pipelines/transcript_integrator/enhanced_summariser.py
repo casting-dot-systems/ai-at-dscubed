@@ -10,6 +10,9 @@ from typing import Any, Optional, List, Dict
 from pathlib import Path
 import urllib.parse
 
+from dotenv import load_dotenv
+import asyncpg
+
 from llmgine.bus.bus import MessageBus
 from llmgine.llm import SessionID
 from llmgine.llm.models.openai_models import Gpt41Mini
@@ -39,6 +42,15 @@ DML_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../brai
 # Google Drive API scopes
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 
+# ====== NEW: Load environment and DB URL ======
+load_dotenv(dotenv_path=r"C:\Users\andys\OneDrive - The University of Melbourne\AI_DSCubed\ai-at-dscubed\.env")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+async def get_db_connection():
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL not set in environment or .env file.")
+    return await asyncpg.connect(DATABASE_URL)
+
 @dataclass
 class SummariseTranscriptsCommand(Command):
     google_drive_folder_url: str = ""
@@ -54,106 +66,72 @@ class SummariseResultEvent(Event):
     meeting_updates: int = 0
 
 class EnhancedSummariserEngine:
-    def __init__(self, model: Any, session_id: Optional[SessionID] = None):
+    async def async_init(self, model: Any, session_id: Optional[SessionID] = None):
         self.model = model
         self.session_id = session_id or SessionID(str(uuid.uuid4()))
         self.bus = MessageBus()
         self.engine_id = str(uuid.uuid4())
-        
-        # Load existing data
-        self.committee_members = self._load_committee_members()
-        self.projects = self._load_projects()
-        self.project_members = self._load_project_members()
-        self.meetings = self._load_existing_meetings()
-        
-        # Google Drive service
+        # Load context from DB
+        self.committee_members = await self._load_committee_members()
+        self.projects = await self._load_projects()
+        self.project_members = await self._load_project_members()
+        self.meetings = await self._load_existing_meetings()
         self.drive_service = None
 
-    def _load_committee_members(self) -> Dict[str, Dict]:
-        """Load committee members from committee.sql"""
+    async def _load_committee_members(self) -> Dict[str, Dict]:
         members = {}
-        committee_file = os.path.join(DML_DIR, 'committee.sql')
-        
-        if os.path.exists(committee_file):
-            with open(committee_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                # Parse INSERT statements - updated for silver schema and ingestion_timestamp
-                # Pattern: (1, 'John', 'Doe', 'john.doe@example.com', '2021-01-01', 'AI Engineer', 'Active', CURRENT_TIMESTAMP)
-                matches = re.findall(r"\((\d+), '([^']+)', '([^']+)', '[^']+', '[^']+', '[^']+', '[^']+', [^)]+\)", content)
-                for member_id, first_name, last_name in matches:
-                    full_name = f"{first_name} {last_name}"
-                    members[full_name.lower()] = {
-                        'id': int(member_id),
-                        'first_name': first_name,
-                        'last_name': last_name,
-                        'full_name': full_name
-                    }
+        conn = await get_db_connection()
+        rows = await conn.fetch("SELECT member_id, name FROM silver.committee")
+        for row in rows:
+            full_name = row['name']
+            members[full_name.lower()] = {
+                'id': row['member_id'],
+                'name': full_name,
+                'full_name': full_name
+            }
+        await conn.close()
         return members
 
-    def _load_projects(self) -> Dict[str, Dict]:
-        """Load projects from project.sql"""
+    async def _load_projects(self) -> Dict[str, Dict]:
         projects = {}
-        project_file = os.path.join(DML_DIR, 'project.sql')
-        
-        if os.path.exists(project_file):
-            with open(project_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-                # Parse INSERT statements - handle new structure with project_name and project_description
-                # Look for pattern: (1, 'Even''s Marathon', 'Organizing a charity marathon event led by Even.', CURRENT_TIMESTAMP)
-                matches = re.findall(r"\((\d+), '([^']*(?:''[^']*)*)', '([^']*(?:''[^']*)*)', [^)]+\)", content)
-                
-                for project_id, project_name, project_description in matches:
-                    # Unescape the quotes
-                    project_name = project_name.replace("''", "'")
-                    project_description = project_description.replace("''", "'")
-                    
-                    projects[project_name.lower()] = {
-                        'id': int(project_id),
-                        'name': project_name,
-                        'summary': project_description  # Keep 'summary' key for backward compatibility
-                    }
+        conn = await get_db_connection()
+        rows = await conn.fetch("SELECT project_id, project_name, project_description FROM silver.project")
+        for row in rows:
+            projects[row['project_name'].lower()] = {
+                'id': row['project_id'],
+                'name': row['project_name'],
+                'summary': row['project_description']
+            }
+        await conn.close()
         return projects
 
-    def _load_project_members(self) -> Dict[int, List[int]]:
-        """Load project members from project_members.sql"""
+    async def _load_project_members(self) -> Dict[int, List[int]]:
         project_members = {}
-        project_members_file = os.path.join(DML_DIR, 'project_members.sql')
-        
-        if os.path.exists(project_members_file):
-            with open(project_members_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                # Parse INSERT statements - updated for silver schema and ingestion_timestamp
-                # Pattern: (1, 1, CURRENT_TIMESTAMP)
-                matches = re.findall(r"\((\d+), (\d+), [^)]+\)", content)
-                for project_id, member_id in matches:
-                    project_id = int(project_id)
-                    member_id = int(member_id)
-                    if project_id not in project_members:
-                        project_members[project_id] = []
-                    project_members[project_id].append(member_id)
+        conn = await get_db_connection()
+        rows = await conn.fetch("SELECT project_id, member_id FROM silver.project_members")
+        for row in rows:
+            project_id = row['project_id']
+            member_id = row['member_id']
+            if project_id not in project_members:
+                project_members[project_id] = []
+            project_members[project_id].append(member_id)
+        await conn.close()
         return project_members
 
-    def _load_existing_meetings(self) -> Dict[str, Dict]:
-        """Load existing meetings from meeting.sql"""
+    async def _load_existing_meetings(self) -> Dict[str, Dict]:
         meetings = {}
-        meeting_file = os.path.join(DML_DIR, 'meeting.sql')
-        
-        if os.path.exists(meeting_file):
-            with open(meeting_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-                # Parse INSERT statements - updated for silver schema and ingestion_timestamp
-                # Pattern: (1, 'Project Discussion', 'transcript_link', '2024-06-08', 'summary', CURRENT_TIMESTAMP)
-                # Handle the case where meeting_summary might be empty
-                matches = re.findall(r"\((\d+), '([^']+)', '([^']+)', '([^']+)', '([^']*)', [^)]+\)", content)
-                for meeting_id, meeting_type, transcript_link, date, summary in matches:
-                    meetings[transcript_link] = {
-                        'meeting_id': int(meeting_id),
-                        'type': meeting_type,
-                        'transcript_link': transcript_link,
-                        'date': date,
-                        'summary': summary
-                    }
+        conn = await get_db_connection()
+        rows = await conn.fetch("SELECT meeting_id, name, type, meeting_summary, meeting_timestamp FROM silver.meeting")
+        for row in rows:
+            # Use meeting name as key since there's no transcript_link column
+            meetings[row['name']] = {
+                'meeting_id': row['meeting_id'],
+                'type': row['type'],
+                'name': row['name'],
+                'summary': row['meeting_summary'],
+                'timestamp': row['meeting_timestamp']
+            }
+        await conn.close()
         return meetings
 
     async def handle_command(self, command: Command) -> CommandResult:
@@ -379,38 +357,22 @@ Write a clear, structured summary that captures the essential information from t
             print(f"Error generating summary for {transcript_file['file_name']}: {e}")
             return None
     async def _update_meeting_summary(self, transcript_link: str, summary: str) -> bool:
-        """Update meeting.sql with the generated summary"""
+        """Update meeting summary in the database"""
         try:
             # Check if this transcript is already in the meetings table
             if transcript_link in self.meetings:
                 meeting = self.meetings[transcript_link]
                 
-                # Read the current meeting.sql file
-                meeting_file = os.path.join(DML_DIR, 'meeting.sql')
-                with open(meeting_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                # Update the database directly
+                conn = await get_db_connection()
+                await conn.execute(
+                    "UPDATE silver.meeting SET meeting_summary = $1 WHERE meeting_id = $2",
+                    summary, meeting['meeting_id']
+                )
+                await conn.close()
                 
-                # Escape single quotes in summary for SQL
-                escaped_summary = summary.replace("'", "''")
-                
-                # Replace the empty summary with the generated summary
-                # Pattern: (meeting_id, 'type', 'transcript_link', 'date', '', CURRENT_TIMESTAMP)
-                # We need to match the exact pattern including CURRENT_TIMESTAMP
-                old_pattern = f"({meeting['meeting_id']}, '{meeting['type']}', '{meeting['transcript_link']}', '{meeting['date']}', '', CURRENT_TIMESTAMP)"
-                new_pattern = f"({meeting['meeting_id']}, '{meeting['type']}', '{meeting['transcript_link']}', '{meeting['date']}', '{escaped_summary}', CURRENT_TIMESTAMP)"
-                
-                if old_pattern in content:
-                    content = content.replace(old_pattern, new_pattern)
-                    
-                    # Write back to file
-                    async with aiofiles.open(meeting_file, 'w', encoding='utf-8') as f:
-                        await f.write(content)
-                    
-                    print(f"Updated meeting {meeting['meeting_id']} with summary")
-                    return True
-                else:
-                    print(f"Could not find exact pattern to update for meeting {meeting['meeting_id']}")
-                    return False
+                print(f"Updated meeting {meeting['meeting_id']} with summary")
+                return True
             else:
                 print(f"Transcript link not found in meetings table: {transcript_link}")
                 return False
@@ -421,7 +383,7 @@ Write a clear, structured summary that captures the essential information from t
 
     def _format_committee_members(self) -> str:
         """Format committee members for prompt"""
-        return "\n".join([f"- {member['full_name']}" for member in self.committee_members.values()])
+        return "\n".join([f"- {member['name']}" for member in self.committee_members.values()])
 
     def _format_projects(self) -> str:
         """Format projects for prompt"""
@@ -441,7 +403,7 @@ async def generate_summary_async(transcript_path: str, projects: dict, committee
         transcript_content = f.read()
     # Build context
     project_context = "\n".join([f"- {p['name']}: {p.get('summary', '')}" for p in projects.values()])
-    committee_context = "\n".join([f"- {m['name'] if 'name' in m else m.get('full_name', '')}" for m in committee_members.values()])
+    committee_context = "\n".join([f"- {m['name']}" for m in committee_members.values()])
     prompt = f"""
 You are an expert meeting summariser. Given the following meeting transcript and project information, write a concise but detailed summary of the meeting.
 
@@ -475,7 +437,8 @@ async def main():
     await bootstrap.bootstrap()
     
     model = Gpt41Mini(Providers.OPENAI)
-    engine = EnhancedSummariserEngine(model)
+    engine = EnhancedSummariserEngine()
+    await engine.async_init(model)
     cli = EngineCLI(engine.session_id)
     cli.register_engine(engine)
     cli.register_engine_command(SummariseTranscriptsCommand, engine.handle_command)

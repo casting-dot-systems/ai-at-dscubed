@@ -294,6 +294,10 @@ Available committee members:
 Please analyze the following messages from channel {channel_id} and:
 
 1. **Detect Conversation Boundaries**: Group messages into distinct conversations based on topic changes, time gaps, and conversation flow.
+- Make sure that endings and beginnings are clearly separated.
+- Be wary of misgrouping messages at the end of the conversation that are more colloquial and does not explicitly contain the key convo information.
+- Look out for interjections in messages that may indicate the start of a new conversation or end of a previous conversation.
+- Be careful not to group the last message of a conversation as the first message of a new conversation.
 
 2. **Identify Participants**: For each conversation, identify which committee members participated (use their member IDs from the list above).
 
