@@ -520,6 +520,206 @@ def get_committee_member_by_discord_dm_channel_id(
         return dict(member) if member else None
 
 
+def get_meetings_by_discord_id(discord_id: int) -> list[dict[str, Any]]:
+    """
+    Get all meetings a Discord user participated in.
+
+    Args:
+        discord_id: The Discord ID of the user
+
+    Returns:
+        List of dictionaries containing meeting data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT DISTINCT m.name as meeting_name, m.type, m.meeting_timestamp
+        FROM silver.meeting m
+        JOIN silver.meeting_members mm ON m.meeting_id = mm.meeting_id
+        JOIN silver.committee c ON mm.member_id = c.member_id
+        WHERE c.discord_id = :discord_id
+        ORDER BY m.meeting_timestamp DESC
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"discord_id": discord_id})
+        meetings = result.mappings().all()
+        return [dict(meeting) for meeting in meetings]
+
+
+def get_projects_by_discord_id(discord_id: int) -> list[dict[str, Any]]:
+    """
+    Get all projects a Discord user is involved in.
+
+    Args:
+        discord_id: The Discord ID of the user
+
+    Returns:
+        List of dictionaries containing project data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT p.project_name, pm.ingestion_timestamp
+        FROM silver.committee c
+        JOIN silver.project_members pm ON c.member_id = pm.member_id
+        JOIN silver.project p ON pm.project_id = p.project_id
+        WHERE c.discord_id = :discord_id
+        ORDER BY p.project_name
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"discord_id": discord_id})
+        projects = result.mappings().all()
+        return [dict(project) for project in projects]
+
+
+def get_projects_by_member_name(member_name: str) -> list[dict[str, Any]]:
+    """
+    Get all projects a committee member is involved in.
+
+    Args:
+        member_name: The name of the committee member
+
+    Returns:
+        List of dictionaries containing project data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT p.project_name, pm.ingestion_timestamp
+        FROM silver.committee c
+        JOIN silver.project_members pm ON c.member_id = pm.member_id
+        JOIN silver.project p ON pm.project_id = p.project_id
+        WHERE c.name = :member_name
+        ORDER BY p.project_name
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"member_name": member_name})
+        projects = result.mappings().all()
+        return [dict(project) for project in projects]
+
+
+def get_participants_by_meeting_name(meeting_name: str) -> list[dict[str, Any]]:
+    """
+    Get all participants in a specific meeting.
+
+    Args:
+        meeting_name: The name of the meeting
+
+    Returns:
+        List of dictionaries containing participant data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT c.name as member_name, c.discord_id, c.notion_id, mm.type as participation_type
+        FROM silver.meeting m
+        JOIN silver.meeting_members mm ON m.meeting_id = mm.meeting_id
+        JOIN silver.committee c ON mm.member_id = c.member_id
+        WHERE m.name = :meeting_name
+        ORDER BY c.name
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"meeting_name": meeting_name})
+        participants = result.mappings().all()
+        return [dict(participant) for participant in participants]
+
+
+def get_projects_by_meeting_name(meeting_name: str) -> list[dict[str, Any]]:
+    """
+    Get all projects discussed in a specific meeting.
+
+    Args:
+        meeting_name: The name of the meeting
+
+    Returns:
+        List of dictionaries containing project data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT p.project_name, mp.ingestion_timestamp
+        FROM silver.meeting m
+        JOIN silver.meeting_projects mp ON m.meeting_id = mp.meeting_id
+        JOIN silver.project p ON mp.project_id = p.project_id
+        WHERE m.name = :meeting_name
+        ORDER BY p.project_name
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"meeting_name": meeting_name})
+        projects = result.mappings().all()
+        return [dict(project) for project in projects]
+
+
+def get_meetings_by_notion_id(notion_id: str) -> list[dict[str, Any]]:
+    """
+    Get all meetings a Notion user participated in.
+
+    Args:
+        notion_id: The Notion ID of the user
+
+    Returns:
+        List of dictionaries containing meeting data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT DISTINCT m.name as meeting_name, m.type, m.meeting_timestamp
+        FROM silver.meeting m
+        JOIN silver.meeting_members mm ON m.meeting_id = mm.meeting_id
+        JOIN silver.committee c ON mm.member_id = c.member_id
+        WHERE c.notion_id = :notion_id
+        ORDER BY m.meeting_timestamp DESC
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"notion_id": notion_id})
+        meetings = result.mappings().all()
+        return [dict(meeting) for meeting in meetings]
+
+
+def get_meetings_by_project_name(project_name: str) -> list[dict[str, Any]]:
+    """
+    Get all meetings related to a specific project.
+
+    Args:
+        project_name: The name of the project
+
+    Returns:
+        List of dictionaries containing meeting data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT m.name as meeting_name, m.type, m.meeting_timestamp, m.meeting_summary
+        FROM silver.project p
+        JOIN silver.meeting_projects mp ON p.project_id = mp.project_id
+        JOIN silver.meeting m ON mp.meeting_id = m.meeting_id
+        WHERE p.project_name = :project_name
+        ORDER BY m.meeting_timestamp DESC
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"project_name": project_name})
+        meetings = result.mappings().all()
+        return [dict(meeting) for meeting in meetings]
+
+
+def get_members_by_project_name(project_name: str) -> list[dict[str, Any]]:
+    """
+    Get all committee members working on a specific project.
+
+    Args:
+        project_name: The name of the project
+
+    Returns:
+        List of dictionaries containing member data
+    """
+    engine = DatabaseEngine.get_engine()
+    query = text("""
+        SELECT c.name as member_name, c.discord_id, c.notion_id, pm.ingestion_timestamp
+        FROM silver.project p
+        JOIN silver.project_members pm ON p.project_id = pm.project_id
+        JOIN silver.committee c ON pm.member_id = c.member_id
+        WHERE p.project_name = :project_name
+        ORDER BY c.name
+    """)
+    with engine.connect() as conn:
+        result = conn.execute(query, {"project_name": project_name})
+        members = result.mappings().all()
+        return [dict(member) for member in members]
+
+
 def main():
     print(get_committee_member_by_discord_id("241085495398891521"))
 
