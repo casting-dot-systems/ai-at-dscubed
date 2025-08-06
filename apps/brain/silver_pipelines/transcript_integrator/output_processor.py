@@ -15,8 +15,8 @@ def output_processor(crsr, engine, meeting_summary: str, meeting_id, schema_name
     Parameters:
     - crsr and engine are for the database 
     - meeting_summary (str): The full meeting summary as a string.
-    - meeting_id
-    - schema_name
+    - meeting_id - meeting id
+    - schema_name - schema name
     - topic_SQL_path - table name
     
     Returns:
@@ -47,7 +47,7 @@ def output_processor(crsr, engine, meeting_summary: str, meeting_id, schema_name
     data.append(
         {
             "topic_id":topic_id,
-            "topic_name": 'Meeting Info',
+            #"topic_name": 'Meeting Info',
             "topic_description": meeting_summary[0],
             "meeting_id": meeting_id,
             "ingestion_timestep": date.today()
@@ -65,7 +65,7 @@ def output_processor(crsr, engine, meeting_summary: str, meeting_id, schema_name
         topic_id=get_topic_id(crsr, f"{schema_name}.{topic_SQL_path}",content[0])
         data.append({
             "topic_id":topic_id,
-            "topic_name": content[0],
+            #"topic_name": content[0],
             "topic_description": content[1].lstrip('\n'),
             "meeting_id": meeting_id,
             "ingestion_timestep": date.today()
@@ -99,6 +99,10 @@ conn = psycopg2.connect(
 # cursor
 crsr = conn.cursor()
 
+# Clear schema if you want to try
+#sql = f'DROP SCHEMA "ai-at-dscubed-topic" CASCADE;'
+#crsr.execute(sql)
+#conn.commit()
 
 # PostgreSQL URL format: postgresql+psycopg2://user:password@host:port/dbname
 engine = create_engine('postgresql+psycopg2://postgres:P0stgres@localhost:5432/postgres')
@@ -107,6 +111,8 @@ file=open("summary2.txt", "r")
 meeting_summary = file.read()
 file.close()
 output_processor(crsr, engine, meeting_summary, 10, "ai-at-dscubed-topic", "topics")
+
+
 
 
 
