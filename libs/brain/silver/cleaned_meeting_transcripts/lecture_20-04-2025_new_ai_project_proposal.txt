@@ -1,0 +1,7 @@
+Andy S: Today, I want to propose a new AI project for our team. The idea is to build an automated meeting summariser that integrates with Discord voice channels. It would generate summaries, action items, and key decisions for each meeting.
+
+The plan is to use Whisper for transcription and GPT-4 for summarisation. I estimate 2-3 months for an MVP, with basic transcription ready in 4 weeks. This tool could really boost our productivity and help us keep track of important discussions.
+
+We'll need to address privacy concerns, so I suggest implementing end-to-end encryption and user consent features. For the tech stack, I'm thinking FastAPI for the backend, React for the frontend, PostgreSQL for storage, and Redis for caching.
+
+The estimated budget is $8000 for development and $2000 for infrastructure and API costs. I'll draft a detailed project proposal and share it with everyone for feedback. Looking forward to your thoughts and suggestions!

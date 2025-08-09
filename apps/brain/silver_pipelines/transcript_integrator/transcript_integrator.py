@@ -38,7 +38,7 @@ except ImportError:
     print("Warning: Google Drive API not available. Install with: pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client")
 
 # Logging setup
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -116,6 +116,21 @@ class ProjectMember(Base):
     project_id = Column(Integer, ForeignKey('silver.project.project_id', ondelete='CASCADE'), primary_key=True)
     member_id = Column(Integer, ForeignKey('silver.committee.member_id', ondelete='CASCADE'), primary_key=True)
 
+class Topic(Base):
+    __tablename__ = 'topic'
+    __table_args__ = {'schema': 'silver'}
+    topic_id = Column(Integer, primary_key=True, autoincrement=True)
+    topic_name = Column(String(255), nullable=False)
+    ingestion_timestamp = Column(TIMESTAMP, nullable=False)
+
+class MeetingTopic(Base):
+    __tablename__ = 'meeting_topics'
+    __table_args__ = {'schema': 'silver'}
+    meeting_id = Column(Integer, ForeignKey('silver.meeting.meeting_id', ondelete='CASCADE'), primary_key=True)
+    topic_id = Column(Integer, ForeignKey('silver.topic.topic_id', ondelete='CASCADE'), primary_key=True)
+    topic_summary = Column(Text)
+    ingestion_timestamp = Column(TIMESTAMP, nullable=False)
+
 class TranscriptIntegratorEngine:
     def __init__(self, model: Any, session_id: Optional[SessionID] = None):
         """
@@ -128,6 +143,7 @@ class TranscriptIntegratorEngine:
         self.committee_members = None  # Will be loaded asynchronously
         self.projects = None           # Will be loaded asynchronously
         self.project_members = None    # Will be loaded from database
+        self.topics = None             # Will be loaded from database
         self.drive_service = None
         self.engine = create_async_engine(DATABASE_URL, echo=False, future=True)
         self.async_session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
@@ -137,6 +153,7 @@ class TranscriptIntegratorEngine:
         self.committee_members = await self._load_committee_members_from_db()
         self.projects = await self._load_projects_from_db()
         self.project_members = await self._load_project_members_from_db()
+        self.topics = await self._load_topics_from_db()
 
     async def _load_committee_members_from_db(self):
         """Load committee members from the database"""
@@ -176,6 +193,17 @@ class TranscriptIntegratorEngine:
                     project_members[project_id] = []
                 project_members[project_id].append(member_id)
         return project_members
+
+    async def _load_topics_from_db(self):
+        """Load topics from the database"""
+        topics = {}
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(Topic.topic_id, Topic.topic_name)
+            )
+            for topic_id, topic_name in result.fetchall():
+                topics[topic_name.lower()] = {'id': topic_id, 'name': topic_name}
+        return topics
 
     async def handle_command(self, command: Command) -> CommandResult:
         """
@@ -273,11 +301,13 @@ class TranscriptIntegratorEngine:
         # List and let user select files
         selected_files = await self.list_and_select_files(folder_id)
         if not selected_files:
-            return {'meetings_processed': 0, 'members_identified': 0, 'projects_linked': 0}
+            return {'meetings_processed': 0, 'members_identified': 0, 'projects_linked': 0, 'topics_linked': 0, 'topics_generated': 0}
         await self.bus.publish(IntegrationStatusEvent(status=f"Selected {len(selected_files)} transcript files", session_id=self.session_id))
         meetings_processed = 0
         members_identified = set()
         projects_linked = set()
+        topics_linked = set()
+        topics_generated = 0
         temp_dir = tempfile.mkdtemp()
         for file in selected_files:
             file_id = file['id']
@@ -304,6 +334,13 @@ class TranscriptIntegratorEngine:
                 # Generate enhanced summary using integrated summariser
                 summary = await self._generate_enhanced_summary(file_path)
                 print(f"[DEBUG] Enhanced summary generated for {file_name}:\n{summary}\n{'='*40}")
+                
+                # Identify and process topics
+                identified_topics = await self._identify_topics_in_transcript(file_path, meeting_type)
+                processed_topics, new_topics_count = await self._process_topics_and_get_ids(identified_topics)
+                print(f"[DEBUG] Identified {len(processed_topics)} topics for {file_name}")
+                topics_generated += new_topics_count
+                
                 # Insert into DB
                 async with self.async_session() as session:
                     async with session.begin():
@@ -334,6 +371,17 @@ class TranscriptIntegratorEngine:
                                 ingestion_timestamp=datetime.utcnow()
                             ))
                             projects_linked.add(project_id)
+                        
+                        # Insert meeting topics
+                        for topic_data in processed_topics:
+                            session.add(MeetingTopic(
+                                meeting_id=meeting.meeting_id,
+                                topic_id=topic_data['topic_id'],
+                                topic_summary=topic_data['topic_summary'],
+                                ingestion_timestamp=datetime.utcnow()
+                            ))
+                            topics_linked.add(topic_data['topic_id'])
+                        
                         await session.commit()
                         meetings_processed += 1
                 # Rename file in Google Drive after successful processing
@@ -349,7 +397,9 @@ class TranscriptIntegratorEngine:
         return {
             'meetings_processed': meetings_processed,
             'members_identified': len(members_identified),
-            'projects_linked': len(projects_linked)
+            'projects_linked': len(projects_linked),
+            'topics_linked': len(topics_linked),
+            'topics_generated': topics_generated
         }
 
     def _parse_filename(self, filename: str) -> (str, datetime):
@@ -472,6 +522,128 @@ Return your response in this exact JSON format:
                     print(f"No match for project: {name}")
         return {'member_ids': member_ids, 'project_ids': project_ids}
 
+    async def _identify_topics_in_transcript(self, transcript_path: str, meeting_type: str) -> List[Dict[str, str]]:
+        """
+        Use GPT-4.1 to identify topics in the transcript, providing existing topics as context.
+        Returns list of topics with their summaries.
+        """
+        with open(transcript_path, 'r', encoding='utf-8') as f:
+            transcript_content = f.read()
+        
+        # Format existing topics for the prompt
+        existing_topics_context = "\n".join([f"- {topic['name']}" for topic in self.topics.values()])
+        
+        prompt = f"""
+You are an expert at analyzing meeting transcripts and extracting key topics and themes.
+
+Existing topics in our system:
+{existing_topics_context}
+
+Please analyze the following {meeting_type} transcript and identify the key topics discussed. For each topic:
+
+1. If the topic matches or is very similar to an existing topic from the list above, use the EXACT name from the existing list
+2. If it's a completely new topic not covered by existing ones, suggest a clear, concise name
+3. Provide a brief summary of how this topic was discussed in this specific meeting
+
+Important guidelines:
+- Focus on substantial topics that had meaningful discussion
+- Avoid overly granular details - group related discussions under broader topics
+- Each topic should represent a distinct area of discussion
+- Aim for 3-8 main topics per meeting
+
+Meeting Transcript:
+{transcript_content}
+
+Return your response in this exact JSON format:
+{{
+    "topics": [
+        {{
+            "topic_name": "exact topic name",
+            "topic_summary": "summary of how this topic was discussed in this meeting",
+            "is_existing": true/false
+        }}
+    ]
+}}"""
+
+        response = await self.model.generate(messages=[{"role": "user", "content": prompt}])
+        import json
+        content = response.raw.choices[0].message.content or "{}"
+        
+        try:
+            data = json.loads(content)
+            return data.get('topics', [])
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse LLM response for topic identification: {e}")
+            return []
+
+    async def _process_topics_and_get_ids(self, identified_topics: List[Dict[str, str]]) -> tuple[List[Dict[str, any]], int]:
+        """
+        Process identified topics, match with existing ones using fuzzy matching,
+        create new topics if needed, and return topic IDs with summaries.
+        """
+        import difflib
+        
+        processed_topics = []
+        new_topics_created = 0
+        
+        async with self.async_session() as session:
+            async with session.begin():
+                for topic_data in identified_topics:
+                    topic_name = topic_data.get('topic_name', '').strip()
+                    topic_summary = topic_data.get('topic_summary', '').strip()
+                    is_existing = topic_data.get('is_existing', False)
+                    
+                    if not topic_name:
+                        continue
+                    
+                    topic_id = None
+                    matched_name = topic_name
+                    
+                    # First, try exact match (case-insensitive)
+                    key = topic_name.lower()
+                    if key in self.topics:
+                        topic_id = self.topics[key]['id']
+                        matched_name = self.topics[key]['name']
+                        print(f"Exact match found for topic: '{topic_name}' -> '{matched_name}'")
+                    else:
+                        # Try fuzzy matching with existing topics
+                        topic_names = list(self.topics.keys())
+                        matches = difflib.get_close_matches(key, topic_names, n=1, cutoff=0.7)
+                        
+                        if matches:
+                            matched_key = matches[0]
+                            topic_id = self.topics[matched_key]['id']
+                            matched_name = self.topics[matched_key]['name']
+                            print(f"Fuzzy matched topic: '{topic_name}' -> '{matched_name}'")
+                        else:
+                            # No match found, create new topic
+                            print(f"Creating new topic: '{topic_name}'")
+                            new_topic = Topic(
+                                topic_name=topic_name,
+                                ingestion_timestamp=datetime.utcnow()
+                            )
+                            session.add(new_topic)
+                            await session.flush()  # Get the topic_id
+                            topic_id = new_topic.topic_id
+                            matched_name = topic_name
+                            
+                            # Update our local cache
+                            self.topics[topic_name.lower()] = {'id': topic_id, 'name': topic_name}
+                            new_topics_created += 1
+                    
+                    processed_topics.append({
+                        'topic_id': topic_id,
+                        'topic_name': matched_name,
+                        'topic_summary': topic_summary
+                    })
+                
+                await session.commit()
+        
+        if new_topics_created > 0:
+            print(f"Created {new_topics_created} new topics")
+        
+        return processed_topics, new_topics_created
+
     async def _generate_enhanced_summary(self, transcript_path: str) -> str:
         """
         Generate an enhanced summary for a transcript file using project and committee context.
@@ -489,6 +661,9 @@ Available projects and their descriptions:
 
 Available committee members:
 {self._format_committee_members()}
+
+Known topics from previous meetings:
+{self._format_topics()}
 
 Please analyze the meeting transcript and create a comprehensive summary that:
 1. Identifies the main topics discussed
@@ -525,6 +700,10 @@ Write a clear, structured summary that captures the essential information from t
     def _format_projects(self) -> str:
         """Format projects for prompt"""
         return "\n".join([f"- {project['name']}: {project['summary']}" for project in self.projects.values()])
+
+    def _format_topics(self) -> str:
+        """Format topics for prompt"""
+        return "\n".join([f"- {topic['name']}" for topic in self.topics.values()])
 
     async def _update_existing_meeting_summary(self, meeting_name: str, summary: str) -> bool:
         """
@@ -656,7 +835,9 @@ async def main():
         print(f"Meetings processed: {data['meetings_processed']}")
         print(f"Members identified: {data['members_identified']}")
         print(f"Projects linked: {data['projects_linked']}")
-        print(f"Enhanced summaries generated: {data['meetings_processed']}\n")
+        print(f"Topics linked: {data['topics_linked']}")
+        print(f"Topics generated: {data['topics_generated']}")
+        print(f"Summaries generated: {data['meetings_processed']}\n")
     else:
         print(f"Error: {result.error}")
 
