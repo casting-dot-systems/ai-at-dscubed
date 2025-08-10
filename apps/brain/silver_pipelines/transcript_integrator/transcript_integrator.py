@@ -329,11 +329,10 @@ class TranscriptIntegratorEngine:
                 # Parse meeting type and date from filename
                 meeting_type, meeting_date = self._parse_filename(file_name)
                 prompt = self._build_prompt(meeting_type, meeting_date, file_path)
-                # Extract members/projects using GPT-4.1
+                # Extract members/projects
                 extraction = await self._extract_meeting_info(prompt)
-                # Generate enhanced summary using integrated summariser
                 summary = await self._generate_enhanced_summary(file_path)
-                print(f"[DEBUG] Enhanced summary generated for {file_name}:\n{summary}\n{'='*40}")
+                print(f"[DEBUG] Summary generated for {file_name}:\n{summary}\n{'='*40}")
                 
                 # Identify and process topics
                 identified_topics = await self._identify_topics_in_transcript(file_path, meeting_type)
@@ -560,7 +559,7 @@ Return your response in this exact JSON format:
         {{
             "topic_name": "exact topic name",
             "topic_summary": "summary of how this topic was discussed in this meeting",
-            "is_existing": true/false
+            "is_existing": True/False
         }}
     ]
 }}"""

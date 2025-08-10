@@ -28,15 +28,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Find the project root (ai-at-dscubed) dynamically
-current_dir = os.path.abspath(os.path.dirname(__file__))
-while not os.path.exists(os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')):
-    parent = os.path.dirname(current_dir)
-    if parent == current_dir:
-        raise FileNotFoundError("Could not find 'libs/brain/silver/DML' in any parent directory.")
-    current_dir = parent
+# current_dir = os.path.abspath(os.path.dirname(__file__))
+# while not os.path.exists(os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')):
+#     parent = os.path.dirname(current_dir)
+#     if parent == current_dir:
+#         raise FileNotFoundError("Could not find 'libs/brain/silver/DML' in any parent directory.")
+#     current_dir = parent
 
-DML_DIR = os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')
-print("DML_DIR being used:", DML_DIR)
+# DML_DIR = os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')
+# print("DML_DIR being used:", DML_DIR)
 Base = declarative_base()
 
 # Load environment variables
@@ -52,12 +52,12 @@ elif DATABASE_URL and DATABASE_URL.startswith('postgresql+psycopg2://'):
 
 @dataclass
 class DetectConversationsCommand(Command):
-    channel_id: int = 0
+    component_id: int = 0
 
 @dataclass
 class DetectionStatusEvent(Event):
     status: str = ""
-    current_channel: int = 0
+    current_component: int = 0
     messages_processed: int = 0
 
 @dataclass
@@ -67,26 +67,26 @@ class DetectionResultEvent(Event):
     members_identified: int = 0
 
 # Database Models
-class InternalTextChannelConvos(Base):
-    __tablename__ = 'internal_text_channel_convos'
+class InternalMsgConvos(Base):
+    __tablename__ = 'internal_msg_convos'
     __table_args__ = {'schema': 'silver'}
     convo_id = Column(Integer, primary_key=True, autoincrement=True)
     convo_summary = Column(Text)
     ingestion_timestamp = Column(TIMESTAMP, default=datetime.utcnow)
 
-class InternalTextChnlConvoMembers(Base):
-    __tablename__ = 'internal_text_chnl_convo_members'
+class InternalMsgConvoMembers(Base):
+    __tablename__ = 'internal_msg_convo_members'
     __table_args__ = {'schema': 'silver'}
-    convo_id = Column(Integer, ForeignKey('silver.internal_text_channel_convos.convo_id', ondelete='CASCADE'), primary_key=True)
+    convo_id = Column(Integer, ForeignKey('silver.internal_msg_convos.convo_id', ondelete='CASCADE'), primary_key=True)
     member_id = Column(Integer, ForeignKey('silver.committee.member_id', ondelete='CASCADE'), primary_key=True)
     ingestion_timestamp = Column(TIMESTAMP, default=datetime.utcnow)
 
-class InternalTextChnlMsgConvoMember(Base):
-    __tablename__ = 'internal_text_chnl_msg_convo_member'
+class InternalMsgMessageConvoMember(Base):
+    __tablename__ = 'internal_msg_message_convo_member'
     __table_args__ = {'schema': 'silver'}
     message_id = Column(BigInteger, primary_key=True)
     member_id = Column(Integer, ForeignKey('silver.committee.member_id', ondelete='CASCADE'))
-    convo_id = Column(Integer, ForeignKey('silver.internal_text_channel_convos.convo_id', ondelete='CASCADE'), primary_key=True)
+    convo_id = Column(Integer, ForeignKey('silver.internal_msg_convos.convo_id', ondelete='CASCADE'), primary_key=True)
     ingestion_timestamp = Column(TIMESTAMP, default=datetime.utcnow)
 
 class Committee(Base):
@@ -95,14 +95,15 @@ class Committee(Base):
     member_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String)
 
-class InternalTextChannelMessages(Base):
-    __tablename__ = 'internal_text_channel_messages'
+class InternalMsgMessage(Base):
+    __tablename__ = 'internal_msg_message'
     __table_args__ = {'schema': 'silver'}
     message_id = Column(BigInteger, primary_key=True)
     member_id = Column(BigInteger)
-    channel_id = Column(BigInteger)
-    message = Column(Text)
-    date_created = Column(TIMESTAMP)
+    component_id = Column(BigInteger)
+    msg_txt = Column(Text)
+    sent_at = Column(TIMESTAMP)
+    ingestion_timestamp = Column(TIMESTAMP, default=datetime.utcnow)
 
 class ConversationDetectorEngine:
     def __init__(self, model: Any, session_id: Optional[SessionID] = None):
@@ -138,36 +139,36 @@ class ConversationDetectorEngine:
         """
         try:
             if isinstance(command, DetectConversationsCommand):
-                channel_id = command.channel_id
+                component_id = command.component_id
             else:
-                channel_id = getattr(command, 'channel_id', None)
-                if not channel_id:
-                    raise ValueError("No channel_id provided in command.")
+                component_id = getattr(command, 'component_id', None)
+                if not component_id:
+                    raise ValueError("No component_id provided in command.")
             
-            result = await self.detect_conversations(channel_id)
+            result = await self.detect_conversations(component_id)
             return CommandResult(success=True, result=result, session_id=self.session_id)
         except Exception as e:
             logger.error(f"Error in handle_command: {e}")
             return CommandResult(success=False, error=str(e), session_id=self.session_id)
 
-    async def detect_conversations(self, channel_id: int) -> Dict[str, int]:
+    async def detect_conversations(self, component_id: int) -> Dict[str, int]:
         """
-        Main workflow: detect conversations in a specific channel.
+        Main workflow: detect conversations in a specific component.
         """
         await self.bus.publish(DetectionStatusEvent(
             status="Starting conversation detection", 
-            current_channel=channel_id,
+            current_component=component_id,
             session_id=self.session_id
         ))
 
         try:
-            # Get new messages for the channel (not already processed)
-            new_messages = await self._get_new_messages(channel_id)
+            # Get new messages for the component (not already processed)
+            new_messages = await self._get_new_messages(component_id)
             
             if not new_messages:
                 await self.bus.publish(DetectionStatusEvent(
                     status="No new messages to process",
-                    current_channel=channel_id,
+                    current_component=component_id,
                     messages_processed=0,
                     session_id=self.session_id
                 ))
@@ -179,18 +180,18 @@ class ConversationDetectorEngine:
 
             await self.bus.publish(DetectionStatusEvent(
                 status=f"Found {len(new_messages)} new messages to process",
-                current_channel=channel_id,
+                current_component=component_id,
                 messages_processed=len(new_messages),
                 session_id=self.session_id
             ))
 
             # Process messages with LLM
-            conversations = await self._detect_conversations_with_llm(new_messages, channel_id)
+            conversations = await self._detect_conversations_with_llm(new_messages, component_id)
             
             if not conversations:
                 await self.bus.publish(DetectionStatusEvent(
                     status="No conversations detected by LLM",
-                    current_channel=channel_id,
+                    current_component=component_id,
                     messages_processed=len(new_messages),
                     session_id=self.session_id
                 ))
@@ -213,37 +214,37 @@ class ConversationDetectorEngine:
             return result
 
         except Exception as e:
-            logger.error(f"Error detecting conversations for channel {channel_id}: {e}")
+            logger.error(f"Error detecting conversations for component {component_id}: {e}")
             raise
 
-    async def _get_new_messages(self, channel_id: int) -> List[Dict]:
+    async def _get_new_messages(self, component_id: int) -> List[Dict]:
         """
         Get messages that haven't been processed yet (not in internal_text_chnl_msg_convo_member).
         """
         async with self.async_session() as session:
             # Get messages that are not already linked to conversations
             result = await session.execute(text("""
-                SELECT m.message_id, m.member_id, m.channel_id, m.message, m.date_created
-                FROM silver.internal_text_channel_messages m
+                SELECT m.message_id, m.member_id, m.component_id, m.message, m.date_created
+                FROM silver.internal_text_component_messages m
                 LEFT JOIN silver.internal_text_chnl_msg_convo_member l ON m.message_id = l.message_id
-                WHERE m.channel_id = :channel_id 
+                WHERE m.component_id = :component_id 
                 AND l.message_id IS NULL
                 ORDER BY m.date_created
-            """), {'channel_id': channel_id})
+            """), {'component_id': component_id})
             
             messages = []
             for row in result.fetchall():
                 messages.append({
                     'message_id': row.message_id,
                     'member_id': row.member_id,
-                    'channel_id': row.channel_id,
+                    'component_id': row.component_id,
                     'message': row.message,
                     'date_created': row.date_created
                 })
             
             return messages
 
-    async def _detect_conversations_with_llm(self, messages: List[Dict], channel_id: int) -> List[Dict]:
+    async def _detect_conversations_with_llm(self, messages: List[Dict], component_id: int) -> List[Dict]:
         """
         Use LLM to detect conversations from messages.
         """
@@ -254,7 +255,7 @@ class ConversationDetectorEngine:
         formatted_messages = self._format_messages_for_llm(messages)
         
         # Build prompt
-        prompt = self._build_conversation_detection_prompt(formatted_messages, channel_id)
+        prompt = self._build_conversation_detection_prompt(formatted_messages, component_id)
         
         try:
             # Get LLM response
@@ -264,7 +265,7 @@ class ConversationDetectorEngine:
             # Parse LLM response
             conversations = self._parse_llm_response(content, messages)
             
-            logger.info(f"LLM detected {len(conversations)} conversations in channel {channel_id}")
+            logger.info(f"LLM detected {len(conversations)} conversations in component {component_id}")
             return conversations
             
         except Exception as e:
@@ -281,7 +282,7 @@ class ConversationDetectorEngine:
             formatted.append(f"[{timestamp}] {member_name}: {msg['message']}")
         return "\n".join(formatted)
 
-    def _build_conversation_detection_prompt(self, formatted_messages: str, channel_id: int) -> str:
+    def _build_conversation_detection_prompt(self, formatted_messages: str, component_id: int) -> str:
         """Build the LLM prompt for conversation detection"""
         committee_context = "\n".join([f"- {m['name']} (ID: {m['id']})" for m in self.committee_members.values()])
         
@@ -291,7 +292,7 @@ You are an expert at analyzing text message conversations and detecting conversa
 Available committee members:
 {committee_context}
 
-Please analyze the following messages from channel {channel_id} and:
+Please analyze the following messages from component {component_id} and:
 
 1. **Detect Conversation Boundaries**: Group messages into distinct conversations based on topic changes, time gaps, and conversation flow.
 - Make sure that endings and beginnings are clearly separated.
@@ -305,7 +306,7 @@ Please analyze the following messages from channel {channel_id} and:
 
 The messages are ordered chronologically. Use the timestamps as context but rely primarily on topic and conversation flow to determine boundaries.
 
-Messages from Channel {channel_id}:
+Messages from component {component_id}:
 {formatted_messages}
 
 Return your response in this exact JSON format:
@@ -457,39 +458,39 @@ async def main():
     
     print("Conversation Detector Engine")
     print("=" * 40)
-    print("This engine will detect conversations in text channel messages using LLM.")
+    print("This engine will detect conversations in text component messages using LLM.")
     print()
     
-    # Get available channels
+    # Get available components
     async with engine.async_session() as session:
         result = await session.execute(text("""
-            SELECT DISTINCT channel_id, COUNT(*) as message_count
-            FROM silver.internal_text_channel_messages
-            GROUP BY channel_id
-            ORDER BY channel_id
+            SELECT DISTINCT component_id, COUNT(*) as message_count
+            FROM silver.internal_msg_message
+            GROUP BY component_id
+            ORDER BY component_id
         """))
-        channels = result.fetchall()
+        components = result.fetchall()
     
-    if not channels:
-        print("No channels found with messages.")
+    if not components:
+        print("No components found with messages.")
         return
     
-    print("Available channels:")
-    for channel_id, message_count in channels:
-        print(f"Channel {channel_id}: {message_count} messages")
+    print("Available components:")
+    for component_id, message_count in components:
+        print(f"component {component_id}: {message_count} messages")
     
     print()
     try:
-        channel_id = int(input("Enter channel ID to process: ").strip())
+        component_id = int(input("Enter component ID to process: ").strip())
     except ValueError:
-        print("Invalid channel ID. Exiting.")
+        print("Invalid component ID. Exiting.")
         return
     
-    if not any(ch[0] == channel_id for ch in channels):
-        print(f"Channel {channel_id} not found. Exiting.")
+    if not any(ch[0] == component_id for ch in components):
+        print(f"component {component_id} not found. Exiting.")
         return
     
-    command = DetectConversationsCommand(channel_id=channel_id)
+    command = DetectConversationsCommand(component_id=component_id)
     result = await engine.handle_command(command)
     
     if result.success:

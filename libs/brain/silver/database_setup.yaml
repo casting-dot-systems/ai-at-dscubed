@@ -9,6 +9,7 @@ database_setup:
       - "DDL/committee.sql"
       - "DDL/meeting.sql"
       - "DDL/project.sql"
+      - "DDL/topic.sql"
     dependencies: []
     
   - step: 2
@@ -18,4 +19,5 @@ database_setup:
       - "DDL/meeting_members.sql"
       - "DDL/project_members.sql"
       - "DDL/meeting_projects.sql"
+      - "DDL/meeting_topics.sql"
     dependencies: [1]
