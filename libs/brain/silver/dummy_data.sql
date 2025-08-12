@@ -3,7 +3,7 @@
 
 -- Channel 1: Project Planning Channel
 -- Conversation 1: AI Workshop Planning (15 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (1001, 1, 1, 'Hey team! We need to start planning the AI workshop for next month. Any ideas on what topics we should cover?', '2024-01-15 09:30:00'),
 (1002, 3, 1, 'I think we should focus on practical applications this time. Maybe some hands-on coding sessions?', '2024-01-15 09:32:00'),
 (1003, 5, 1, 'Great idea! We could do a session on building a simple chatbot or image recognition model', '2024-01-15 09:35:00'),
@@ -21,7 +21,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (1015, 1, 1, 'Excellent! Let''s touch base again next Monday to check progress. Thanks everyone!', '2024-01-15 10:05:00');
 
 -- Conversation 2: Budget Review Meeting (12 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (1016, 9, 1, 'Hi team, we need to review our Q1 budget. Can everyone submit their department expenses by Friday?', '2024-01-16 14:00:00'),
 (1017, 2, 1, 'I''ll have the tech team budget ready by Thursday', '2024-01-16 14:02:00'),
 (1018, 8, 1, 'Marketing budget is already submitted. We came in under budget by 15%', '2024-01-16 14:05:00'),
@@ -36,7 +36,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (1027, 9, 1, 'Perfect. Thanks everyone for the quick responses!', '2024-01-16 14:27:00');
 
 -- Conversation 3: New Project Proposal (18 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (1028, 3, 10, 'I have an idea for a new project. What do you think about building a team productivity dashboard?', '2024-01-17 10:30:00'),
 (1029, 1, 10, 'That sounds interesting! What would it include?', '2024-01-17 10:32:00'),
 (1030, 3, 10, 'Task tracking, time management, team collaboration metrics, and project progress visualization', '2024-01-17 10:35:00'),
@@ -57,7 +57,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (1045, 1, 10, 'Great initiative! Looking forward to seeing the proposal', '2024-01-17 11:12:00');
 
 -- Conversation 4: Team Structure Discussion (10 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (1046, 1, 1, 'As we grow, we need to think about our team structure. Any thoughts on how we should organize?', '2024-01-18 15:00:00'),
 (1047, 9, 1, 'I think we should have clear departments: Tech, Marketing, Operations, and Finance', '2024-01-18 15:02:00'),
 (1048, 3, 1, 'What about project-based teams? We could have cross-functional teams for different initiatives', '2024-01-18 15:05:00'),
@@ -71,7 +71,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 
 -- Channel 3: General Team Chat
 -- Conversation 1: Weekend Plans (8 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (2001, 8, 3, 'Anyone up for coffee this weekend? I found this great new cafe downtown', '2024-01-19 16:30:00'),
 (2002, 5, 3, 'I''m in! What time were you thinking?', '2024-01-19 16:32:00'),
 (2003, 11, 3, 'Saturday morning around 10 AM?', '2024-01-19 16:35:00'),
@@ -82,7 +82,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (2008, 5, 3, 'I''ll send out the cafe details in a bit', '2024-01-19 16:47:00');
 
 -- Conversation 2: Team Lunch Organization (10 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (2009, 9, 3, 'Don''t forget about the team lunch next week! Any dietary restrictions I should know about?', '2024-01-20 11:00:00'),
 (2010, 4, 3, 'I''m vegetarian, but I can usually find something anywhere', '2024-01-20 11:02:00'),
 (2011, 8, 3, 'I''m gluten-free. Thanks for asking!', '2024-01-20 11:05:00'),
@@ -95,7 +95,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (2018, 3, 3, 'Thanks for organizing this!', '2024-01-20 11:22:00');
 
 -- Conversation 3: Office Updates (6 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (2019, 1, 3, 'Quick update: The new coffee machine is finally installed!', '2024-01-21 09:00:00'),
 (2020, 8, 3, 'Awesome! Can''t wait to try it', '2024-01-21 09:02:00'),
 (2021, 2, 3, 'Is it one of those fancy ones with all the options?', '2024-01-21 09:05:00'),
@@ -104,7 +104,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (2024, 11, 3, 'Thanks for the update!', '2024-01-21 09:12:00');
 
 -- Conversation 4: Social Event Planning (12 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (2025, 8, 3, 'Hey everyone! I was thinking we should plan a team social event. Any ideas?', '2024-01-22 14:00:00'),
 (2026, 5, 3, 'What about an escape room? I heard there''s a new one that opened', '2024-01-22 14:02:00'),
 (2027, 2, 3, 'That sounds fun! I''m definitely in', '2024-01-22 14:05:00'),

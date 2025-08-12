@@ -28,15 +28,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Find the project root (ai-at-dscubed) dynamically
-# current_dir = os.path.abspath(os.path.dirname(__file__))
-# while not os.path.exists(os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')):
-#     parent = os.path.dirname(current_dir)
-#     if parent == current_dir:
-#         raise FileNotFoundError("Could not find 'libs/brain/silver/DML' in any parent directory.")
-#     current_dir = parent
+current_dir = os.path.abspath(os.path.dirname(__file__))
+while not os.path.exists(os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')):
+    parent = os.path.dirname(current_dir)
+    if parent == current_dir:
+        raise FileNotFoundError("Could not find 'libs/brain/silver/DML' in any parent directory.")
+    current_dir = parent
 
-# DML_DIR = os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')
-# print("DML_DIR being used:", DML_DIR)
+DML_DIR = os.path.join(current_dir, 'libs', 'brain', 'silver', 'DML')
+print("DML_DIR being used:", DML_DIR)
 Base = declarative_base()
 
 # Load environment variables
@@ -52,12 +52,12 @@ elif DATABASE_URL and DATABASE_URL.startswith('postgresql+psycopg2://'):
 
 @dataclass
 class DetectConversationsCommand(Command):
-    component_id: int = 0
+    channel_id: int = 0
 
 @dataclass
 class DetectionStatusEvent(Event):
     status: str = ""
-    current_component: int = 0
+    current_channel: int = 0
     messages_processed: int = 0
 
 @dataclass
@@ -81,8 +81,8 @@ class InternalMsgConvoMembers(Base):
     member_id = Column(Integer, ForeignKey('silver.committee.member_id', ondelete='CASCADE'), primary_key=True)
     ingestion_timestamp = Column(TIMESTAMP, default=datetime.utcnow)
 
-class InternalMsgMessageConvoMember(Base):
-    __tablename__ = 'internal_msg_message_convo_member'
+class InternalMsgMessageConvoMembers(Base):
+    __tablename__ = 'internal_msg_message_convo_members'
     __table_args__ = {'schema': 'silver'}
     message_id = Column(BigInteger, primary_key=True)
     member_id = Column(Integer, ForeignKey('silver.committee.member_id', ondelete='CASCADE'))
@@ -103,7 +103,6 @@ class InternalMsgMessage(Base):
     component_id = Column(BigInteger)
     msg_txt = Column(Text)
     sent_at = Column(TIMESTAMP)
-    ingestion_timestamp = Column(TIMESTAMP, default=datetime.utcnow)
 
 class ConversationDetectorEngine:
     def __init__(self, model: Any, session_id: Optional[SessionID] = None):
@@ -139,13 +138,13 @@ class ConversationDetectorEngine:
         """
         try:
             if isinstance(command, DetectConversationsCommand):
-                component_id = command.component_id
+                channel_id = command.channel_id
             else:
-                component_id = getattr(command, 'component_id', None)
-                if not component_id:
-                    raise ValueError("No component_id provided in command.")
+                channel_id = getattr(command, 'channel_id', None)
+                if not channel_id:
+                    raise ValueError("No channel_id provided in command.")
             
-            result = await self.detect_conversations(component_id)
+            result = await self.detect_conversations(channel_id)
             return CommandResult(success=True, result=result, session_id=self.session_id)
         except Exception as e:
             logger.error(f"Error in handle_command: {e}")
@@ -157,7 +156,7 @@ class ConversationDetectorEngine:
         """
         await self.bus.publish(DetectionStatusEvent(
             status="Starting conversation detection", 
-            current_component=component_id,
+            current_channel=component_id,
             session_id=self.session_id
         ))
 
@@ -168,7 +167,7 @@ class ConversationDetectorEngine:
             if not new_messages:
                 await self.bus.publish(DetectionStatusEvent(
                     status="No new messages to process",
-                    current_component=component_id,
+                    current_channel=component_id,
                     messages_processed=0,
                     session_id=self.session_id
                 ))
@@ -180,7 +179,7 @@ class ConversationDetectorEngine:
 
             await self.bus.publish(DetectionStatusEvent(
                 status=f"Found {len(new_messages)} new messages to process",
-                current_component=component_id,
+                current_channel=component_id,
                 messages_processed=len(new_messages),
                 session_id=self.session_id
             ))
@@ -191,7 +190,7 @@ class ConversationDetectorEngine:
             if not conversations:
                 await self.bus.publish(DetectionStatusEvent(
                     status="No conversations detected by LLM",
-                    current_component=component_id,
+                    current_channel=component_id,
                     messages_processed=len(new_messages),
                     session_id=self.session_id
                 ))
@@ -219,17 +218,17 @@ class ConversationDetectorEngine:
 
     async def _get_new_messages(self, component_id: int) -> List[Dict]:
         """
-        Get messages that haven't been processed yet (not in internal_text_chnl_msg_convo_member).
+        Get messages that haven't been processed yet (not in internal_msg_message_convo_members).
         """
         async with self.async_session() as session:
             # Get messages that are not already linked to conversations
             result = await session.execute(text("""
-                SELECT m.message_id, m.member_id, m.component_id, m.message, m.date_created
-                FROM silver.internal_text_component_messages m
-                LEFT JOIN silver.internal_text_chnl_msg_convo_member l ON m.message_id = l.message_id
+                SELECT m.message_id, m.member_id, m.component_id, m.msg_txt, m.sent_at
+                FROM silver.internal_msg_message m
+                LEFT JOIN silver.internal_msg_message_convo_members l ON m.message_id = l.message_id
                 WHERE m.component_id = :component_id 
                 AND l.message_id IS NULL
-                ORDER BY m.date_created
+                ORDER BY m.sent_at
             """), {'component_id': component_id})
             
             messages = []
@@ -238,8 +237,8 @@ class ConversationDetectorEngine:
                     'message_id': row.message_id,
                     'member_id': row.member_id,
                     'component_id': row.component_id,
-                    'message': row.message,
-                    'date_created': row.date_created
+                    'message': row.msg_txt,
+                    'date_created': row.sent_at
                 })
             
             return messages
@@ -306,7 +305,7 @@ Please analyze the following messages from component {component_id} and:
 
 The messages are ordered chronologically. Use the timestamps as context but rely primarily on topic and conversation flow to determine boundaries.
 
-Messages from component {component_id}:
+Messages from Component {component_id}:
 {formatted_messages}
 
 Return your response in this exact JSON format:
@@ -396,7 +395,7 @@ Important:
                 for conversation in conversations:
                     try:
                         # Insert conversation
-                        convo = InternalTextChannelConvos(
+                        convo = InternalMsgConvos(
                             convo_summary=conversation['summary']
                         )
                         session.add(convo)
@@ -405,7 +404,7 @@ Important:
                         # Insert conversation members (only if they exist in committee)
                         for member_id in conversation['participant_member_ids']:
                             if member_id in self.committee_members:
-                                session.add(InternalTextChnlConvoMembers(
+                                session.add(InternalMsgConvoMembers(
                                     convo_id=convo.convo_id,
                                     member_id=member_id
                                 ))
@@ -415,7 +414,7 @@ Important:
                         for message in conversation['messages']:
                             # Check if the member_id exists in committee before inserting
                             if message['member_id'] in self.committee_members:
-                                session.add(InternalTextChnlMsgConvoMember(
+                                session.add(InternalMsgMessageConvoMembers(
                                     message_id=message['message_id'],
                                     member_id=message['member_id'],
                                     convo_id=convo.convo_id
@@ -458,7 +457,7 @@ async def main():
     
     print("Conversation Detector Engine")
     print("=" * 40)
-    print("This engine will detect conversations in text component messages using LLM.")
+    print("This engine will detect conversations in text channel messages using LLM.")
     print()
     
     # Get available components
@@ -477,7 +476,7 @@ async def main():
     
     print("Available components:")
     for component_id, message_count in components:
-        print(f"component {component_id}: {message_count} messages")
+        print(f"Component {component_id}: {message_count} messages")
     
     print()
     try:
@@ -487,10 +486,10 @@ async def main():
         return
     
     if not any(ch[0] == component_id for ch in components):
-        print(f"component {component_id} not found. Exiting.")
+        print(f"Component {component_id} not found. Exiting.")
         return
     
-    command = DetectConversationsCommand(component_id=component_id)
+    command = DetectConversationsCommand(channel_id=component_id)
     result = await engine.handle_command(command)
     
     if result.success:

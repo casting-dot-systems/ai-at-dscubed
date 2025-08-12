@@ -1,10 +1,10 @@
--- Realistic dummy data for silver.internal_text_channel_messages table
+-- Realistic dummy data for silver.internal_msg_message table
 -- Using integer member IDs (50-65) for AI@DSCubed committee members
--- Channels 1 (Project Planning) and 3 (General Team Chat)
+-- Components 10 (Project Planning) and 30 (General Team Chat)
 
--- Channel 1: Project Planning Channel
+-- Component 10: Project Planning Component
 -- Conversation 1: AI Token/Subscription Budget Meeting (15 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (3001, 50, 10, 'Hey team! We need to discuss our AI tool subscriptions and token budgets for Q1. Anyone available for a budget review meeting?', '2024-01-15 10:30:00'),
 (3002, 51, 10, 'I''ve been tracking our usage across different platforms. We''re over budget on OpenAI and Anthropic tokens', '2024-01-15 10:32:00'),
 (3003, 52, 10, 'What''s our current spend vs budget? I can help analyze the usage patterns', '2024-01-15 10:35:00'),
@@ -22,7 +22,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (3015, 64, 10, 'Perfect! I''ll send out calendar invites and prepare the usage analysis', '2024-01-15 11:05:00');
 
 -- Conversation 2: New AI Project Proposal (18 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (3016, 51, 10, 'I have an idea for a new AI project - what do you think about building an automated meeting summarizer?', '2024-01-16 14:00:00'),
 (3017, 50, 10, 'That sounds interesting! How would it work with our current meeting setup?', '2024-01-16 14:02:00'),
 (3018, 51, 10, 'It would integrate with Discord voice channels and automatically generate summaries, action items, and key decisions', '2024-01-16 14:05:00'),
@@ -42,9 +42,9 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (3032, 64, 10, 'I''ll draft the proposal this week and share it with everyone for feedback', '2024-01-16 14:40:00'),
 (3033, 51, 10, 'Perfect! Looking forward to seeing the detailed proposal', '2024-01-16 14:42:00');
 
--- Channel 3: General Team Chat
+-- Component 30: General Team Chat
 -- Conversation 3: Team Lunch Organisation (12 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (4001, 56, 30, 'Hey everyone! I was thinking we should organize a team lunch next week. Any preferences?', '2024-01-17 11:30:00'),
 (4002, 54, 30, 'I''m in! What about that new Korean BBQ place downtown?', '2024-01-17 11:32:00'),
 (4003, 55, 30, 'I''m vegetarian, but I can usually find something anywhere. Korean BBQ sounds great!', '2024-01-17 11:35:00'),
@@ -59,7 +59,7 @@ INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channe
 (4012, 64, 30, 'I''ll create a recurring calendar event and send out the details', '2024-01-17 11:57:00');
 
 -- Conversation 4: Onboarding Process for New Members (16 messages)
-INSERT INTO silver.internal_text_channel_messages (message_id, member_id, channel_id, message, date_created) VALUES
+INSERT INTO silver.internal_msg_message (message_id, member_id, component_id, msg_txt, sent_at) VALUES
 (4013, 50, 30, 'We have two new members joining next week. Should we review our onboarding process?', '2024-01-18 15:00:00'),
 (4014, 51, 30, 'Good idea! Our current process could use some updates. What do you think we should include?', '2024-01-18 15:02:00'),
 (4015, 52, 30, 'We should definitely include a tour of our AI tools and projects. That''s our core focus', '2024-01-18 15:05:00'),

@@ -91,28 +91,69 @@ class DummyDataIngester:
         try:
             async with self.async_session() as session:
                 # Count total messages
-                result = await session.execute(text("SELECT COUNT(*) as count FROM silver.internal_text_channel_messages"))
+                result = await session.execute(text("SELECT COUNT(*) as count FROM silver.internal_msg_message"))
                 total_messages = result.scalar()
                 
-                # Count messages by channel
+                # Count messages by component
                 result = await session.execute(text("""
-                    SELECT channel_id, COUNT(*) as count 
-                    FROM silver.internal_text_channel_messages 
-                    GROUP BY channel_id 
-                    ORDER BY channel_id
+                    SELECT component_id, COUNT(*) as count 
+                    FROM silver.internal_msg_message 
+                    GROUP BY component_id 
+                    ORDER BY component_id
                 """))
-                channel_counts = result.fetchall()
+                component_counts = result.fetchall()
                 
                 print(f"\n📊 Data Verification:")
                 print(f"Total messages: {total_messages}")
-                print("Messages by channel:")
-                for channel_id, count in channel_counts:
-                    print(f"  Channel {channel_id}: {count} messages")
+                print("Messages by component:")
+                for component_id, count in component_counts:
+                    print(f"  Component {component_id}: {count} messages")
                 
                 return True
                 
         except Exception as e:
             logger.error(f"❌ Error verifying data: {e}")
+            return False
+
+    async def check_existing_data(self):
+        """Check what data already exists in the database"""
+        try:
+            async with self.async_session() as session:
+                # Count total messages
+                result = await session.execute(text("SELECT COUNT(*) as count FROM silver.internal_msg_message"))
+                total_messages = result.scalar()
+                
+                # Count messages by component
+                result = await session.execute(text("""
+                    SELECT component_id, COUNT(*) as count 
+                    FROM silver.internal_msg_message 
+                    GROUP BY component_id 
+                    ORDER BY component_id
+                """))
+                component_counts = result.fetchall()
+                
+                print(f"\n📊 Current Database State:")
+                print(f"Total messages: {total_messages}")
+                print("Messages by component:")
+                for component_id, count in component_counts:
+                    print(f"  Component {component_id}: {count} messages")
+                
+                return total_messages > 0
+                
+        except Exception as e:
+            logger.error(f"❌ Error checking existing data: {e}")
+            return False
+
+    async def clear_existing_data(self):
+        """Clear all existing data from the table"""
+        try:
+            async with self.async_session() as session:
+                await session.execute(text("DELETE FROM silver.internal_msg_message"))
+                await session.commit()
+                print("🗑️  Cleared existing data from internal_msg_message table")
+                return True
+        except Exception as e:
+            logger.error(f"❌ Error clearing data: {e}")
             return False
 
     async def close(self):
@@ -122,6 +163,17 @@ class DummyDataIngester:
 async def main():
     ingester = DummyDataIngester()
     try:
+        # Check existing data first
+        has_existing_data = await ingester.check_existing_data()
+        
+        if has_existing_data:
+            print("\n⚠️  Existing data found! This may cause duplicate key errors.")
+            response = input("Do you want to clear existing data before ingesting? (y/N): ").strip().lower()
+            if response == 'y':
+                await ingester.clear_existing_data()
+            else:
+                print("Continuing without clearing data...")
+        
         # Ingest the dummy data
         success = await ingester.ingest_dummy_data()
         
