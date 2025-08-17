@@ -55,5 +55,20 @@ BEGIN
     END IF;
 END $$;
 
+-- Convert parent_id to BIGINT if it's not already (for existing tables)
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'bronze' 
+        AND table_name = 'discord_relevant_channels' 
+        AND column_name = 'parent_id'
+        AND data_type != 'bigint'
+    ) THEN
+        ALTER TABLE bronze.discord_relevant_channels 
+        ALTER COLUMN parent_id TYPE BIGINT USING parent_id::BIGINT;
+    END IF;
+END $$;
+
 
 

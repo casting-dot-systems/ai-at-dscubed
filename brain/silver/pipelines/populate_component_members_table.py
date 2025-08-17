@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Simple script to populate the internal_msg_members table.
-This script transforms Discord channel member data to silver.internal_msg_members.
+Simple script to populate the internal_msg_component_members table.
+This script transforms Discord channel member data to silver.internal_msg_component_members.
 """
 
 import os
@@ -50,6 +50,7 @@ def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: s
                 if_exists='replace',
                 index=False
             )
+            conn.commit()
         print(f"✓ Successfully wrote data to {schema}.{table_name}")
         
     except Exception as e:
@@ -95,8 +96,8 @@ def create_member_component_relationships(committee_df: pd.DataFrame, component_
     return pd.DataFrame(members_components)
 
 def main():
-    """Main function to populate the internal_msg_members table."""
-    print("Starting internal_msg_members population...")
+    """Main function to populate the internal_msg_component_members table."""
+    print("Starting internal_msg_component_members population...")
     
     # Create database engine
     engine = create_db_engine()
@@ -131,9 +132,9 @@ def main():
             return
         
         # Write to silver table
-        write_dataframe(engine, members_df, 'internal_msg_members', 'silver')
+        write_dataframe(engine, members_df, 'internal_msg_component_member', 'silver')
         
-        print("\n🎉 internal_msg_members population completed successfully!")
+        print("\n🎉 internal_msg_component_members population completed successfully!")
         print(f"Populated {len(members_df)} member-component relationships")
         print(f"   - {len(committee_df)} unique members")
         print(f"   - {len(component_df)} unique components")

@@ -138,8 +138,10 @@ class DiscordExtractor:
                     print(f"- News channels: {len(guild.news_channels)}")
                 
                 for channel in all_channels:
-                    # Get parent_id - this will be the category_id if channel is in a category, otherwise None
-                    parent_id = channel.category_id if hasattr(channel, 'category_id') else None
+                    # Get parent_id - use channel.category.id if available to ensure it matches the category's channel.id
+                    parent_id = None
+                    if hasattr(channel, 'category') and channel.category:
+                        parent_id = channel.category.id  # Use category.id instead of category_id for consistency
                     
                     # Get section/category name - this will be the category name if channel is in a category, otherwise None
                     section_name = None
@@ -155,7 +157,7 @@ class DiscordExtractor:
                         "channel_id": channel.id,
                         "channel_name": channel.name,
                         "channel_created_at": channel.created_at.isoformat(),
-                        "parent_id": parent_id,  # Category ID for channels in categories, NULL for root channels
+                        "parent_id": parent_id,  # Category channel ID for channels in categories, NULL for root channels
                         "section_name": section_name,  # Add section name information
                         "entity_type": entity_type,  # Add entity type information
                         "ingest": True,  # Default to False, can be manually set later

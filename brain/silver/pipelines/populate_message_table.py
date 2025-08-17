@@ -40,7 +40,7 @@ def execute_ddl(engine: Engine, ddl_path: str) -> None:
         raise
 
 def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: str = 'silver') -> None:
-    """Write DataFrame to database."""
+    """Write DataFrame to database, preserving table schema including serial columns."""
     try:
         print(f"📊 About to write {len(df)} rows to {schema}.{table_name}")
         print(f"📊 DataFrame columns: {list(df.columns)}")
@@ -48,11 +48,15 @@ def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: s
         print(df.head(3))
         
         with engine.connect() as conn:
+            # First, truncate the table to clear existing data but preserve schema
+            conn.execute(sa.text(f"TRUNCATE TABLE {schema}.{table_name}"))
+            
+            # Then append data (preserves table schema including serial columns)
             df.to_sql(
                 table_name,
                 conn,
                 schema=schema,
-                if_exists='replace',
+                if_exists='append',
                 index=False
             )
             conn.commit()  # Explicit commit
@@ -78,7 +82,7 @@ def transform_bronze_to_silver_messages(bronze_df: pd.DataFrame, committee_df: p
     """Transform bronze chat data to silver messages format with proper member_id lookup.
     
     Committee members get their member_id from the committee table.
-    Non-committee members get negative discord_user_id as member_id for identification.
+    Non-committee members get NULL as member_id (coerced to unknown).
     """
     df = bronze_df.copy()
     
@@ -92,7 +96,7 @@ def transform_bronze_to_silver_messages(bronze_df: pd.DataFrame, committee_df: p
     # Map discord_user_id to member_id using committee lookup
     df['member_id'] = df['discord_user_id'].map(discord_to_member)
     
-    # Handle non-committee members: use negative discord_user_id to distinguish them
+    # Handle non-committee members: set to NULL (will be coerced to unknown)
     unmapped_mask = df['member_id'].isna()
     unmapped_users = df[unmapped_mask]['discord_user_id'].unique()
     
@@ -100,16 +104,15 @@ def transform_bronze_to_silver_messages(bronze_df: pd.DataFrame, committee_df: p
         print(f"ℹ️  Found {len(unmapped_users)} Discord user IDs not in committee table (non-committee members):")
         for user_id in unmapped_users:
             print(f"   - {user_id}")
-        print("   These will be labeled as non-committee members using negative member_id.")
+        print("   These will be set to NULL (unknown member).")
     
-    # For non-committee members, use negative discord_user_id as member_id
-    df.loc[unmapped_mask, 'member_id'] = -df.loc[unmapped_mask, 'discord_user_id']
+    # For non-committee members, leave as NULL (no need to set negative values)
     
     # Determine message type based on thread information
     df['msg_type'] = df.apply(lambda row: 'thread_message' if row.get('is_thread', False) else 'channel_message', axis=1)
     
     silver_df = pd.DataFrame({
-        'member_id': df['member_id'].astype(int),  # Positive: committee member_id, Negative: non-committee discord_user_id
+        'member_id': df['member_id'].astype('Int64'),  # Committee member_id or NULL for non-committee
         'component_id': df['channel_id'],  # Map channel_id to component_id
         'msg_txt': df['content'],  # Map content to msg_txt
         'msg_type': df['msg_type'],  # Message type (channel_message or thread_message)
@@ -158,8 +161,8 @@ def main():
         print(f"Populated {len(silver_df)} message records")
         
         # Show breakdown of committee vs non-committee messages
-        committee_messages = len(silver_df[silver_df['member_id'] > 0])
-        non_committee_messages = len(silver_df[silver_df['member_id'] < 0])
+        committee_messages = len(silver_df[silver_df['member_id'].notna()])
+        non_committee_messages = len(silver_df[silver_df['member_id'].isna()])
         print(f"   - Committee members: {committee_messages} messages")
         print(f"   - Non-committee members: {non_committee_messages} messages")
         

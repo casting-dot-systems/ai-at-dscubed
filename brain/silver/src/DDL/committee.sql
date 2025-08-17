@@ -9,3 +9,8 @@ CREATE TABLE IF NOT EXISTS silver.committee (
 );
 
 CREATE INDEX IF NOT EXISTS idx_committee_member_id ON silver.committee(member_id);
+
+-- Insert unknown member record if it doesn't exist
+INSERT INTO silver.committee (member_id, name, notion_id, discord_id, discord_dm_channel_id, ingestion_timestamp)
+VALUES (-1, 'Unknown Member', NULL, NULL, NULL, CURRENT_TIMESTAMP)
+ON CONFLICT (member_id) DO NOTHING;

@@ -37,7 +37,7 @@ python populate_channel_messages_simple.py
 ```
 bronze.discord_relevant_channels (ingest=TRUE)
 └── internal_msg_component
-    └── internal_msg_members (optional)
+    └── internal_msg_component_members (optional)
     
 bronze.discord_chats
 ├── silver.committee (for member_id lookup)
@@ -53,11 +53,10 @@ bronze.discord_chats
 - **parent_component_id**: Parent category/channel ID
 - **component_name**: Display name
 - **created_at**: When component was created
-- **section_name**: Category name (if in category)
 
 ### internal_msg_message  
 - **message_id**: Auto-generated primary key
-- **member_id**: Committee member ID (positive) or negative Discord user ID (non-committee)
+- **member_id**: Committee member ID (positive) or NULL for non-committee members
 - **component_id**: Which component the message belongs to
 - **msg_txt**: Message content
 - **msg_type**: "channel_message" or "thread_message"
@@ -77,7 +76,7 @@ bronze.discord_chats
 
 2. **Silver Layer**: Cleaned, structured data with:
    - Consistent naming (`component_id` instead of `channel_id`)
-   - Member ID mapping (committee members get positive IDs, non-committee get negative Discord IDs)
+   - Member ID mapping (committee members get positive IDs, non-committee get NULL)
    - Message type classification
    - Proper foreign key relationships
 
@@ -96,7 +95,7 @@ DATABASE_URL=postgresql://user:password@host:port/database
 
 ### "No committee members found"
 - The `silver.committee` table is used for member ID mapping
-- Non-committee members will still be processed with negative IDs
+- Non-committee members will still be processed with NULL member_id
 
 ### Pipeline fails with table not found
 - DDL files are automatically executed to create tables

@@ -40,15 +40,79 @@ def execute_ddl(engine: Engine, ddl_path: str) -> None:
         raise
 
 def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: str = 'silver') -> None:
-    """Write DataFrame to database."""
+    """Write DataFrame to database using SQL INSERT to avoid precision issues."""
     try:
-        df.to_sql(
-            table_name,
-            engine,
-            schema=schema,
-            if_exists='replace',
-            index=False
-        )
+        print("=== Writing data to database ===")
+        
+        with engine.connect() as conn:
+            # Truncate table first to clear existing data but preserve schema
+            conn.execute(sa.text(f"TRUNCATE TABLE {schema}.{table_name}"))
+            
+            # Temporarily disable foreign key constraint during insertion
+            conn.execute(sa.text(f"ALTER TABLE {schema}.{table_name} DROP CONSTRAINT IF EXISTS internal_msg_component_parent_fk"))
+            
+            print("=== Inserting data using SQL INSERT statements ===")
+            
+            # Insert data row by row using SQL to preserve integer precision
+            insert_sql = sa.text(f"""
+                INSERT INTO {schema}.{table_name} (
+                    component_id, platform_name, component_type, parent_component_id,
+                    component_name, created_at, archived_at, ingestion_timestamp
+                ) VALUES (
+                    :component_id, :platform_name, :component_type, :parent_component_id,
+                    :component_name, :created_at, :archived_at, :ingestion_timestamp
+                )
+            """)
+            
+            inserted_count = 0
+            for _, row in df.iterrows():
+                # Handle parent_component_id
+                parent_id = None
+                if pd.notna(row['parent_component_id']):
+                    parent_id = int(row['parent_component_id'])
+                
+                conn.execute(insert_sql, {
+                    'component_id': int(row['component_id']),
+                    'platform_name': str(row['platform_name']),
+                    'component_type': str(row['component_type']),
+                    'parent_component_id': parent_id,
+                    'component_name': str(row['component_name']),
+                    'created_at': str(row['created_at']) if pd.notna(row['created_at']) else None,
+                    'archived_at': str(row['archived_at']) if pd.notna(row['archived_at']) else None,
+                    'ingestion_timestamp': row['ingestion_timestamp']
+                })
+                inserted_count += 1
+            
+            print(f"✓ Inserted {inserted_count} records using SQL")
+            
+            # Check for orphaned parent references
+            print("=== Checking for orphaned parent references ===")
+            result = conn.execute(sa.text(f"""
+                SELECT DISTINCT p.parent_component_id, COUNT(*) as count
+                FROM {schema}.{table_name} p
+                LEFT JOIN {schema}.{table_name} c ON p.parent_component_id = c.component_id
+                WHERE p.parent_component_id IS NOT NULL AND c.component_id IS NULL
+                GROUP BY p.parent_component_id
+            """))
+            orphaned_count = 0
+            for row in result:
+                orphaned_count += row[1]
+                print(f"Orphaned parent_id: {row[0]}, Children count: {row[1]}")
+            
+            if orphaned_count > 0:
+                print(f"❌ Found {orphaned_count} records with orphaned parent references")
+                print("⚠️  Skipping foreign key constraint due to orphaned references")
+            else:
+                # Re-enable the foreign key constraint
+                conn.execute(sa.text(f"""
+                    ALTER TABLE {schema}.{table_name} 
+                    ADD CONSTRAINT internal_msg_component_parent_fk 
+                    FOREIGN KEY (parent_component_id) REFERENCES {schema}.{table_name}(component_id)
+                """))
+                print("✅ Foreign key constraint added successfully")
+            
+            conn.commit()
+            
         print(f"✓ Successfully wrote data to {schema}.{table_name}")
         
     except Exception as e:
@@ -57,7 +121,21 @@ def write_dataframe(engine: Engine, df: pd.DataFrame, table_name: str, schema: s
 
 def get_bronze_data(engine: Engine) -> pd.DataFrame:
     """Get Discord channel data from bronze.discord_relevant_channels where ingest = TRUE."""
-    query = sa.text("SELECT * FROM bronze.discord_relevant_channels WHERE ingest = TRUE") # only ingests relevant channels
+    # Explicitly cast ID columns to ensure they remain as integers and don't get converted to floats
+    query = sa.text("""
+        SELECT 
+            server_id::BIGINT,
+            server_name,
+            channel_id::BIGINT,
+            channel_name,
+            channel_created_at,
+            parent_id::BIGINT,
+            entity_type,
+            ingest,
+            ingestion_timestamp
+        FROM bronze.discord_relevant_channels 
+        WHERE ingest = TRUE
+    """)
     with engine.connect() as conn:
         return pd.read_sql(query, conn)
 
@@ -90,8 +168,8 @@ def transform_bronze_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
         print("⚠️  Warning: entity_type column not found in bronze data")
     
     # Map bronze columns to new silver schema
-    # bronze: channel_id, channel_name, channel_created_at, parent_id, section_name, entity_type
-    # silver: component_id, platform_name, component_type, parent_component_id, component_name, created_at, section_name
+    # bronze: channel_id, channel_name, channel_created_at, parent_id, entity_type
+    # silver: component_id, platform_name, component_type, parent_component_id, component_name, created_at
     
     # Use entity_type from bronze data if available, otherwise default to discord_text_channel
     component_type = df.get('entity_type', 'discord_text_channel')
@@ -111,7 +189,6 @@ def transform_bronze_to_silver(bronze_df: pd.DataFrame) -> pd.DataFrame:
         'created_at': df['channel_created_at'],  # Map channel_created_at to created_at
         'archived_at': None,  # Not available in bronze data
         'ingestion_timestamp': datetime.datetime.now(),  # Current timestamp
-        'section_name': df.get('section_name', None)  # Map section_name
     })
     
     return silver_df

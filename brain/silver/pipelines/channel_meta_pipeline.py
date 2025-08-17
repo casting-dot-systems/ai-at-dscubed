@@ -29,9 +29,6 @@ class ChannelMetaPipeline(SilverPipeline):
         # Use parent_id from bronze data - this will be category_id for channels in categories, NULL for root channels
         df['parent_id'] = df.get('parent_id', None)  # Use parent_id from bronze data
         
-        # Use section_name from bronze data - this will be the category name for channels in categories, NULL for root channels
-        df['section_name'] = df.get('section_name', None)  # Use section_name from bronze data
-        
         # Map channel_created_at to date_created
         df['date_created'] = df['channel_created_at']
 
@@ -41,7 +38,6 @@ class ChannelMetaPipeline(SilverPipeline):
                    'channel_name',
                    'description',
                    'parent_id',
-                   'section_name',
                    'date_created',
                    ]]
 
