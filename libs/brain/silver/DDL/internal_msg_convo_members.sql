@@ -6,3 +6,6 @@ CREATE TABLE IF NOT EXISTS silver.internal_msg_convo_members (
     PRIMARY KEY (convo_id, member_id)
 );
 
+
+
+
