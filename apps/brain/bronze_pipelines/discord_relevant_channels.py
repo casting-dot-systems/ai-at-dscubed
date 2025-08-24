@@ -1,15 +1,11 @@
+# a pipeline that stores the relevant channels in the database
+
 import argparse
 import os
 import asyncio
 from dotenv import load_dotenv
-<<<<<<< HEAD:brain/bronze/pipelines/discord_channel.py
 from brain.bronze.src.extractor.discord_extractor import DiscordExtractor
 from brain.bronze.src.utils.pipeline import Pipeline, get_ddl_path
-=======
-from data_source_extractors.discord_extractor import DiscordExtractor
-from pipeline import Pipeline
->>>>>>> f/brain:apps/brain/bronze_pipelines/discord_channel.py
-import sqlalchemy as sa
 
 # TODO: integrate run_pipeline function from pipeline.py
 def main():
@@ -26,23 +22,23 @@ def main():
     if not BOT_KEY or not TEST_SERVER_ID:
         raise ValueError("BOT_KEY and TEST_SERVER_ID must be set in .env file")
     
-    # DISCORD CHANNELS --------------------------------------------------------------------- */
-    discord_channels_extractor = DiscordExtractor()
-    discord_channels_pipeline = Pipeline(schema='bronze')
+    # DISCORD RELEVANT CHANNELS --------------------------------------------------------------------- */
+    discord_relevant_channels_extractor = DiscordExtractor()
+    discord_relevant_channels_pipeline = Pipeline(schema='bronze')
 
     # Follows an ETL process
-    raw_data = asyncio.run(discord_channels_extractor.fetch_discord_channels()) # Extract
+    raw_data = asyncio.run(discord_relevant_channels_extractor.fetch_discord_channels()) # Extract
     
     # Execute DDL to create table
-    ddl_path = get_ddl_path('discord_channel.sql')
-    discord_channels_pipeline.execute_ddl(ddl_path)
+    ddl_path = get_ddl_path('discord_relevant_channels.sql')
+    discord_relevant_channels_pipeline.execute_ddl(ddl_path)
     
     # Transform and Load
-    df = asyncio.run(discord_channels_extractor.parse_discord_data(raw_data))
-    discord_channels_pipeline.write_dataframe(
+    df = asyncio.run(discord_relevant_channels_extractor.parse_discord_data(raw_data))
+    discord_relevant_channels_pipeline.write_dataframe(
         df=df,
-        table_name='discord_channels',
-        if_exists='replace' # Equivalent to truncate + insert in SQL
+        table_name='discord_relevant_channels',
+        if_exists='replace' # equivalent to truncate + insert in SQL
     )
     
     print("Discord channel pipeline completed successfully!")
@@ -50,5 +46,3 @@ def main():
 
 if __name__ == "__main__":
     main() 
-
-
