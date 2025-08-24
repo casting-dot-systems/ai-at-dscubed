@@ -7,3 +7,6 @@ CREATE TABLE IF NOT EXISTS silver.internal_msg_message_convo_members (
     UNIQUE(message_id, convo_id)
 );
 
+
+
+

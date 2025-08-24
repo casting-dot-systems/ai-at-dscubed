@@ -9,3 +9,6 @@ CREATE TABLE IF NOT EXISTS silver.internal_msg_message (
     ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+
+
