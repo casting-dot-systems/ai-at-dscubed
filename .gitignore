@@ -156,3 +156,8 @@ node_modules/
 
 # Docs
 ai-at-dscubed-docs/
+
+# Credential files
+*.pickle
+credentials.json
+token.pickle

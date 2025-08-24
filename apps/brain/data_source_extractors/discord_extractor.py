@@ -66,9 +66,30 @@ class DiscordExtractor:
                 print(f"Error fetching channels: {str(e)}")
                 raise
             finally:
-                await client.close()
+                # Properly close the client and clean up connections
+                try:
+                    await client.close()
+                    # Give some time for connections to close properly
+                    import asyncio
+                    await asyncio.sleep(0.1)
+                except Exception as cleanup_error:
+                    print(f"Warning: Error during client cleanup: {cleanup_error}")
         
-        await client.start(self.token)
+        try:
+            await client.start(self.token)
+        except Exception as e:
+            print(f"Error starting Discord client: {str(e)}")
+            raise
+        finally:
+            # Ensure client is closed even if start fails
+            if not client.is_closed():
+                try:
+                    await client.close()
+                    import asyncio
+                    await asyncio.sleep(0.1)
+                except Exception as cleanup_error:
+                    print(f"Warning: Error during final client cleanup: {cleanup_error}")
+        
         return channels_data
     
     # Extract
@@ -131,10 +152,108 @@ class DiscordExtractor:
                 print(f"Error fetching chat history: {str(e)}")
                 raise
             finally:
-                await client.close()
+                # Properly close the client and clean up connections
+                try:
+                    await client.close()
+                    # Give some time for connections to close properly
+                    import asyncio
+                    await asyncio.sleep(0.1)
+                except Exception as cleanup_error:
+                    print(f"Warning: Error during client cleanup: {cleanup_error}")
         
-        await client.start(self.token)
+        try:
+            await client.start(self.token)
+        except Exception as e:
+            print(f"Error starting Discord client: {str(e)}")
+            raise
+        finally:
+            # Ensure client is closed even if start fails
+            if not client.is_closed():
+                try:
+                    await client.close()
+                    import asyncio
+                    await asyncio.sleep(0.1)
+                except Exception as cleanup_error:
+                    print(f"Warning: Error during final client cleanup: {cleanup_error}")
+        
         return messages_data
+    
+    # Extract
+    async def fetch_discord_reactions(self, limit_per_channel: int = 100) -> List[Dict[str, Any]]:
+        """Fetch reactions from messages and return as list of dictionaries."""
+        client = self.create_client()
+        reactions_data = []
+        
+        @client.event
+        async def on_ready():
+            try:
+                print("Fetching reactions...")
+                guild = client.get_guild(self.guild_id)
+                if not guild:
+                    raise ValueError(f"Guild with ID {self.guild_id} not found")
+                
+                print(f"Found {len(guild.text_channels)} text channels")
+                
+                channel_count = 0
+                for channel in guild.text_channels:
+                    channel_count += 1
+                    print(f"[{channel_count}/{len(guild.text_channels)}] Processing reactions in #{channel.name}")
+                    
+                    message_count = 0
+                    # Fetch reactions from channel messages
+                    async for message in channel.history(limit=limit_per_channel):
+                        message_count += 1
+                        if message_count % 20 == 0:
+                            print(f"  Processed {message_count} messages, found {len(reactions_data)} reactions so far")
+                        
+                        for reaction in message.reactions:
+                            async for user in reaction.users():
+                                reactions_data.append({
+                                    "message_id": message.id,
+                                    "reaction_id": f"{message.id}_{reaction.emoji}_{user.id}",
+                                    "reaction": str(reaction.emoji),
+                                    "discord_username": str(user),
+                                    "discord_user_id": user.id,
+                                })
+                    
+                    print(f"  #{channel.name}: {message_count} messages processed")
+                    
+                    # Skip threads for now to speed up testing
+                    # TODO: Re-enable thread processing after confirming main channels work
+                    
+                print(f"Reactions fetch completed! Total reactions: {len(reactions_data)}")
+                
+            except Exception as e:
+                print(f"Error fetching reactions: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                raise
+            finally:
+                # Properly close the client and clean up connections
+                try:
+                    await client.close()
+                    # Give some time for connections to close properly
+                    import asyncio
+                    await asyncio.sleep(0.1)
+                except Exception as cleanup_error:
+                    print(f"Warning: Error during client cleanup: {cleanup_error}")
+        
+        try:
+            await client.start(self.token)
+        except Exception as e:
+            print(f"Error starting Discord client: {str(e)}")
+            raise
+        finally:
+            # Ensure client is closed even if start fails
+            if not client.is_closed():
+                try:
+                    await client.close()
+                    import asyncio
+                    await asyncio.sleep(0.1)
+                except Exception as cleanup_error:
+                    print(f"Warning: Error during final client cleanup: {cleanup_error}")
+        
+        return reactions_data
     
     # Transform
     async def parse_discord_data(self, raw_data: List[Dict[str, Any]]) -> pd.DataFrame:

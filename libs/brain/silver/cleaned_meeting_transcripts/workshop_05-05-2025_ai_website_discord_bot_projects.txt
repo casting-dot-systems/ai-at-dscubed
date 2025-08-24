@@ -1,0 +1,133 @@
+Aaron: Welcome everyone to our project planning workshop. Today we're going to discuss two major initiatives: the AI@DSCubed website redesign and Discord bot enhancements.
+
+Andy S: Let's start with the website redesign. I've been looking at our current site and it definitely needs a modern update. The user experience could be much better.
+
+Michelle: I agree. The current site doesn't reflect our growth as an organization. We need better project showcases and member profiles.
+
+Chi: For the UI/UX redesign, I suggest we focus on mobile-first design. Most of our members access the site on their phones.
+
+Dharani: What about the content management system? Should we build it from scratch or use something like WordPress?
+
+Pia: I think we should build a custom CMS. It would give us more flexibility and better integration with our other systems.
+
+Sarah A: That's going to increase the development time and budget. Do we have the resources for that?
+
+Andy L: We could use a headless CMS like Strapi. It gives us the flexibility we need without building everything from scratch.
+
+Karen: Good idea. Now for the Discord bot enhancements - what new features are we thinking about?
+
+Matthew: I'd like to add meeting scheduling functionality. It would be great to have the bot automatically create calendar events.
+
+Fairy: What about project tracking? We could have the bot update project status and send reminders.
+
+Natty: We should also add role management features. The bot could help assign and track committee roles.
+
+Trinity: For the website, what's our timeline? I think we should aim for a launch before the winter cohort starts.
+
+Shayomi: I can help with the project management side. We'll need to coordinate between the website and bot development teams.
+
+Aaron: Good point. Let's set some milestones. Website redesign should be done in 3 months, Discord bot enhancements in 2 months.
+
+Michelle: For the website, we need to decide on the tech stack. I'm thinking React for the frontend, Node.js backend.
+
+Chi: What about the design system? Should we create a custom one or use an existing framework like Material-UI?
+
+Dharani: I think we should create our own design system. It would better represent our brand identity.
+
+Pia: For the Discord bot, we'll need to integrate with our existing database. How do we handle user authentication?
+
+Sarah A: We could use Discord's OAuth system and link it to our committee database.
+
+Andy L: What about the meeting analytics? Should that be part of the bot or a separate dashboard project?
+
+Karen: I think it should be separate. The analytics dashboard deserves its own dedicated interface.
+
+Matthew: For the website, what content sections do we need? Project showcases, member profiles, event calendar?
+
+Fairy: We should also have a blog section for sharing AI insights and project updates.
+
+Natty: What about the committee management system? Should that be integrated into the website or stay separate?
+
+Trinity: I think it should be integrated. Having everything in one place would be much better for user experience.
+
+Shayomi: For the Discord bot, we need to think about permissions. Not everyone should be able to schedule meetings.
+
+Aaron: Good point. Let's create role-based permissions for the bot features.
+
+Michelle: For the website redesign, what's our budget? We'll need design work, development, and content migration.
+
+Chi: I estimate $15,000 for the website redesign and $8,000 for the Discord bot enhancements.
+
+Dharani: That seems reasonable. We should also budget for ongoing maintenance and updates.
+
+Pia: For the bot, we need to decide on the hosting platform. Should we use AWS or something else?
+
+Sarah A: AWS would be good for scalability, but we could also use Railway or Render for simpler deployment.
+
+Andy L: What about the winter cohort onboarding? Should we integrate that into the website or keep it separate?
+
+Karen: I think it should be integrated. New members could complete onboarding through the website.
+
+Matthew: For the website, we need to think about SEO and accessibility. These are crucial for our public image.
+
+Fairy: Absolutely. We should also make sure the site loads quickly and works well on all devices.
+
+Natty: What about the meeting analytics dashboard? Should we start planning that now or focus on the website and bot first?
+
+Trinity: I think we should focus on the website and bot first, then tackle the analytics dashboard.
+
+Shayomi: For the bot, we need to plan the development phases. What features should we prioritize?
+
+Aaron: Let's prioritize meeting scheduling and basic project tracking for the first phase.
+
+Michelle: For the website, we should start with wireframes and user research. Who wants to lead the design phase?
+
+Chi: I can help with the user research and wireframing. We should interview current members about their needs.
+
+Dharani: For the bot, we need to decide on the programming language. Python would be consistent with our other tools.
+
+Pia: Python with discord.py would be perfect. It's well-documented and has good community support.
+
+Sarah A: What about the database schema changes? We'll need to add tables for meetings and project tracking.
+
+Andy L: I can help design the database schema. We'll need to consider how it integrates with our existing committee data.
+
+Karen: For the website, we should also plan for future scalability. What if we add more projects or members?
+
+Matthew: Good point. We should design the architecture to handle growth without major refactoring.
+
+Fairy: What about the winter cohort onboarding system? Should we start planning that integration now?
+
+Natty: I think we should focus on the core website and bot features first, then add the onboarding system.
+
+Trinity: For the bot, we need to think about error handling and logging. What happens if something goes wrong?
+
+Shayomi: We should implement comprehensive logging and monitoring. Maybe integrate with our existing logging system.
+
+Aaron: Great discussion everyone. Let's summarize our action items and assign responsibilities.
+
+Michelle: I'll take the lead on the website redesign project management.
+
+Chi: I'll handle the UI/UX design and user research for the website.
+
+Dharani: I'll work on the database schema design and integration planning.
+
+Pia: I'll lead the Discord bot development and feature planning.
+
+Sarah A: I'll coordinate the budget and resource allocation for both projects.
+
+Andy L: I'll help with the technical architecture and hosting decisions.
+
+Karen: I'll work on the content strategy and migration planning for the website.
+
+Matthew: I'll handle the meeting scheduling feature development for the bot.
+
+Fairy: I'll work on the project tracking features and user interface.
+
+Natty: I'll coordinate the integration between the website and bot systems.
+
+Trinity: I'll handle the testing and quality assurance for both projects.
+
+Shayomi: I'll manage the deployment and monitoring setup for both systems.
+
+Aaron: Perfect. Let's schedule follow-up meetings for each project team. Thanks everyone for the productive discussion. 

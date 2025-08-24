@@ -1,5 +1,5 @@
 [project]
-name = "brain"
+name = "brain-lib"
 version = "0.1.0"
 description = "Data processing pipelines for AI at D3"
 requires-python = ">=3.13"
