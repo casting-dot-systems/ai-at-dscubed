@@ -5,3 +5,6 @@ CREATE TABLE IF NOT EXISTS silver.internal_msg_convos (
     ingestion_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+
+
+

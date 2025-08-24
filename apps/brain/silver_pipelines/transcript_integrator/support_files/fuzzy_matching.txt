@@ -1,0 +1,124 @@
+graph TD
+    A["🔤 New Topic: 'AI Projects'"] --> B["🔍 Convert to lowercase: 'ai projects'"]
+    B --> C["📋 Get existing topic keys:<br/>['machine learning', 'ai project', 'data science']"]
+    C --> D["🎯 difflib.get_close_matches()"]
+    
+    D --> E["⚖️ Calculate Similarity Ratios"]
+    E --> F["'ai projects' vs 'machine learning' = 0.2"]
+    E --> G["'ai projects' vs 'ai project' = 0.91"]
+    E --> H["'ai projects' vs 'data science' = 0.1"]
+    
+    F --> I{"🚪 Above 0.7 cutoff?"}
+    G --> I
+    H --> I
+    
+    I -->|0.91 > 0.7| J["✅ Match Found: 'ai project'"]
+    I -->|Others < 0.7| K["❌ No Match"]
+    
+    J --> L["🔄 Use existing topic ID"]
+    K --> M["🆕 Create new topic"]
+    
+    style A fill:#e1f5fe
+    style J fill:#e8f5e8
+    style M fill:#fff3e0
+
+
+
+## Fuzzy Matching Explained
+
+The fuzzy matching in this code uses `difflib.get_close_matches()` with specific parameters:
+
+### Key Parameters
+
+```python
+matches = difflib.get_close_matches(key, topic_names, n=1, cutoff=0.7)
+```
+
+- **`key`**: The new topic name (lowercase)
+- **`topic_names`**: List of all existing topic names (lowercase)
+- **`n=1`**: Return only the **best match** (top 1 result)
+- **`cutoff=0.7`**: Minimum similarity threshold of **70%**
+
+### How Similarity is Calculated
+
+`difflib.get_close_matches()` uses the **Ratcliff-Obershelp algorithm** which calculates similarity based on:
+
+1. **Longest Common Subsequences (LCS)**
+2. **Formula**: `similarity = 2 * (matching_characters) / (total_characters)`
+
+### Real Examples
+
+Let me show you how this would work with actual topic names:
+
+#### Example 1: Close Match ✅
+```python
+New topic: "AI Projects"
+Existing: "AI Project" 
+Similarity: ~0.91 (above 0.7 cutoff)
+Result: MATCH - uses existing "AI Project"
+```
+
+#### Example 2: Plural/Singular Variations ✅
+```python
+New topic: "Machine Learning Models"
+Existing: "Machine Learning Model"
+Similarity: ~0.96 (above 0.7 cutoff) 
+Result: MATCH - uses existing topic
+```
+
+#### Example 3: Typos ✅
+```python
+New topic: "Databse Design"
+Existing: "Database Design"
+Similarity: ~0.93 (above 0.7 cutoff)
+Result: MATCH - corrects typo
+```
+
+#### Example 4: Different Topics ❌
+```python
+New topic: "Frontend Development" 
+Existing: "Database Design"
+Similarity: ~0.2 (below 0.7 cutoff)
+Result: NO MATCH - creates new topic
+```
+
+### The Matching Process
+
+```python
+# 1. Convert to lowercase for comparison
+key = topic_name.lower()  # "AI Projects" -> "ai projects"
+
+# 2. Get all existing topic keys 
+topic_names = list(self.topics.keys())  # ["ai project", "database design", ...]
+
+# 3. Find best matches above threshold
+matches = difflib.get_close_matches(key, topic_names, n=1, cutoff=0.7)
+
+# 4. Use the match if found
+if matches:
+    matched_key = matches[0]  # Best match
+    topic_id = self.topics[matched_key]['id']
+    print(f"Fuzzy matched topic: '{topic_name}' -> '{matched_name}'")
+```
+
+### Why 0.7 Cutoff?
+
+The **0.7 (70%) cutoff** is a balanced choice:
+
+- **Too low (e.g., 0.5)**: Would match unrelated topics
+- **Too high (e.g., 0.9)**: Would miss legitimate variations like plurals
+- **0.7**: Catches common variations while avoiding false positives
+
+### Benefits of This Approach
+
+1. **Handles Typos**: "Databse" → "Database"
+2. **Plural/Singular**: "Project" ↔ "Projects" 
+3. **Minor Variations**: "AI Project" ↔ "AI Projects"
+4. **Case Insensitive**: "AI project" ↔ "ai PROJECT"
+5. **Prevents Duplicates**: Maintains clean topic taxonomy
+
+### Fallback Behavior
+
+If no fuzzy match is found (similarity < 0.7), the engine creates a completely new topic in the database, ensuring that genuinely different topics get their own entries.
+
+This fuzzy matching ensures the topic system stays organized while being flexible enough to handle natural language variations! 🎯

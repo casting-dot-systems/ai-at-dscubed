@@ -154,9 +154,6 @@ node_modules/
 
 .DS_STORE
 
-# Docs
-ai-at-dscubed-docs/
-
 # Credential files
 *.pickle
 credentials.json
