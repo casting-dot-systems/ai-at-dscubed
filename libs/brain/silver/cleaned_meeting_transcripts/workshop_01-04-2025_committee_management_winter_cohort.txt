@@ -1,0 +1,185 @@
+Aaron: Welcome to our workshop on the Committee Management System and Winter Cohort Onboarding projects. These are two critical systems that will help us scale our operations.
+
+Andy S: Let's start with the Committee Management System. We need a comprehensive solution for managing member roles, communications, and project assignments.
+
+Michelle: The current system is getting unwieldy. We're using spreadsheets and Discord roles, but it's not scalable as we grow.
+
+Chi: I think we need a centralized database that tracks member skills, availability, and project preferences.
+
+Dharani: What about role management? We need to clearly define committee roles and responsibilities.
+
+Pia: We should create a role hierarchy system. Some members might have multiple roles across different projects.
+
+Sarah A: For the winter cohort onboarding, we need to automate the process. Currently, it's very manual and time-consuming.
+
+Andy L: We could create an onboarding portal where new members complete forms, watch orientation videos, and get assigned mentors.
+
+Karen: What about the committee management system interface? Should it be web-based or integrated into Discord?
+
+Matthew: I think it should be web-based for the admin functions, but with Discord integration for notifications and updates.
+
+Fairy: For the winter cohort, we need to think about the timeline. When do we start the onboarding process?
+
+Natty: We should start 2 weeks before the cohort begins. That gives us time to process applications and assign mentors.
+
+Trinity: What about the committee management system features? We need member profiles, skill tracking, and project assignment tools.
+
+Shayomi: We should also have reporting features. How do we track member engagement and project participation?
+
+Aaron: Good point. We need analytics to understand how our committee is performing and where we need improvements.
+
+Michelle: For the winter cohort onboarding, what's the application process? Should we use Google Forms or build a custom application system?
+
+Chi: I think we should build a custom system. It would integrate better with our committee management database.
+
+Dharani: What about the mentor assignment process? How do we match new members with experienced committee members?
+
+Pia: We could create a matching algorithm based on skills, interests, and availability. The system could suggest optimal mentor-mentee pairs.
+
+Sarah A: For the committee management system, we need to think about permissions. Not everyone should have access to all member data.
+
+Andy L: We should implement role-based access control. Committee leads get more access than regular members.
+
+Karen: What about the winter cohort onboarding timeline? How long should the onboarding process take?
+
+Matthew: I think 2 weeks is reasonable. Week 1 for orientation and paperwork, week 2 for project assignments and mentor meetings.
+
+Fairy: For the committee management system, we need to integrate with our existing tools. How does it connect with Discord, Notion, and our project tracking?
+
+Natty: We should create APIs that sync data between all our systems. Real-time updates would be ideal.
+
+Trinity: What about the winter cohort application review process? Who reviews applications and how do we make decisions?
+
+Shayomi: We could create a review committee with specific criteria. The system could help track applications and decisions.
+
+Aaron: For the committee management system, what's our development timeline? This is a complex system.
+
+Michelle: I estimate 4-5 months for the full system. We could break it into phases: member profiles first, then role management, then analytics.
+
+Chi: For the winter cohort onboarding, we need to create orientation materials. Who will develop the training content?
+
+Dharani: I can help create the orientation videos and documentation. We should cover our mission, projects, and communication protocols.
+
+Pia: What about the committee management system database design? We need to plan for scalability and data integrity.
+
+Sarah A: We should use PostgreSQL with proper foreign key constraints and data validation rules.
+
+Andy L: For the winter cohort, we need to think about the application form. What information should we collect?
+
+Karen: Basic info, skills, interests, availability, and why they want to join AI@DSCubed. We should also ask about their AI experience level.
+
+Matthew: For the committee management system, we need to plan for data migration. How do we move from our current spreadsheets?
+
+Fairy: We should create a migration script that validates data and handles any inconsistencies.
+
+Natty: What about the winter cohort mentor training? How do we prepare mentors for their role?
+
+Trinity: We should create a mentor training program. Mentors need to understand their responsibilities and how to support new members.
+
+Shayomi: For the committee management system, we need to think about notifications. How do we keep members informed about updates?
+
+Aaron: Email notifications for important updates, Discord notifications for urgent matters, and in-app notifications for routine updates.
+
+Michelle: For the winter cohort, we need to plan the welcome event. How do we introduce new members to the team?
+
+Chi: We could have a virtual welcome event with icebreakers, project presentations, and mentor introductions.
+
+Dharani: What about the committee management system reporting? What metrics should we track?
+
+Pia: Member engagement, project participation, skill development, and overall committee health metrics.
+
+Sarah A: For the winter cohort, we need to think about the evaluation process. How do we assess if onboarding was successful?
+
+Andy L: We could track completion rates, mentor feedback, and member satisfaction surveys.
+
+Karen: What about the committee management system security? How do we protect member data?
+
+Matthew: We should implement encryption, regular backups, and access logging. GDPR compliance is also important.
+
+Fairy: For the winter cohort, we need to plan for different time zones. Our members are spread across different regions.
+
+Natty: We should schedule events at different times and record sessions for members who can't attend live.
+
+Trinity: What about the committee management system integration with our project tracking tools?
+
+Shayomi: We should create APIs that allow project managers to assign tasks and track progress through the committee system.
+
+Aaron: For the winter cohort, we need to think about the alumni network. How do we maintain relationships with past members?
+
+Michelle: We could create an alumni portal and regular networking events. Past members can mentor current ones.
+
+Chi: What about the committee management system mobile app? Should we develop one or focus on the web interface?
+
+Dharani: I think we should start with a responsive web interface, then consider a mobile app if there's demand.
+
+Pia: For the winter cohort, we need to plan the project assignment process. How do we match new members with projects?
+
+Sarah A: We could create a preference matching system where new members rank their project interests.
+
+Andy L: What about the committee management system backup and recovery? How do we handle data loss scenarios?
+
+Karen: We should implement automated backups, disaster recovery procedures, and regular testing.
+
+Matthew: For the winter cohort, we need to think about the feedback loop. How do we improve the onboarding process?
+
+Fairy: We should collect feedback at multiple points: after orientation, after mentor meetings, and after the first month.
+
+Natty: What about the committee management system user interface? Should we use a modern framework like React?
+
+Trinity: React would be good for the frontend. We could also use a UI library like Material-UI or Ant Design.
+
+Shayomi: For the winter cohort, we need to plan the graduation process. How do we transition members from onboarding to full participation?
+
+Aaron: We should have a graduation ceremony and clear transition guidelines. New members should feel confident about their role.
+
+Michelle: For the committee management system, we need to plan the rollout. Should we launch all features at once or phase them in?
+
+Chi: I think we should phase the rollout. Start with member profiles, then add role management, then analytics.
+
+Dharani: What about the winter cohort application deadline? When should we close applications?
+
+Pia: We should close applications 3 weeks before the cohort starts. That gives us time to review and make decisions.
+
+Sarah A: For the committee management system, we need to budget for development, hosting, and ongoing maintenance.
+
+Andy L: I estimate $25,000 for development, $5,000 for hosting and maintenance annually.
+
+Karen: For the winter cohort, we need to plan the mentor compensation or recognition system.
+
+Matthew: We could offer leadership credits, special project opportunities, or recognition at events.
+
+Fairy: What about the committee management system training? How do we train committee leads to use the new system?
+
+Natty: We should create training videos, documentation, and hands-on workshops for different user roles.
+
+Trinity: For the winter cohort, we need to think about the application review criteria. What makes a strong candidate?
+
+Shayomi: We should look for AI interest, teamwork skills, availability, and alignment with our mission.
+
+Aaron: Great discussion everyone. Let's summarize our action items and assign project leads.
+
+Michelle: I'll lead the Committee Management System project and coordinate the development team.
+
+Chi: I'll handle the user interface design and user experience for both systems.
+
+Dharani: I'll work on the database design and data migration planning.
+
+Pia: I'll lead the Winter Cohort Onboarding system development and mentor program design.
+
+Sarah A: I'll coordinate the budget planning and resource allocation for both projects.
+
+Andy L: I'll handle the technical architecture and integration planning.
+
+Karen: I'll work on the content creation for onboarding materials and training programs.
+
+Matthew: I'll manage the application review process and mentor assignment system.
+
+Fairy: I'll coordinate the welcome events and networking activities for new members.
+
+Natty: I'll handle the reporting and analytics features for the committee management system.
+
+Trinity: I'll manage the testing and quality assurance for both systems.
+
+Shayomi: I'll coordinate the rollout planning and user training programs.
+
+Aaron: Perfect. These are two critical projects that will help us scale effectively. Let's schedule regular check-ins and keep everyone updated on progress. 
