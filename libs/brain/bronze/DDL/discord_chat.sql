@@ -1,5 +1,5 @@
 -- Create a table for storing Discord chat history
-CREATE TABLE IF NOT EXISTS bronze.discord_chat (
+CREATE TABLE IF NOT EXISTS bronze.discord_chats (
     chat_id SERIAL PRIMARY KEY,
     channel_id BIGINT NOT NULL,
     channel_name VARCHAR(255) NOT NULL,
@@ -16,16 +16,16 @@ CREATE TABLE IF NOT EXISTS bronze.discord_chat (
 );
 
 -- Create indexes for common query patterns
-CREATE INDEX IF NOT EXISTS idx_discord_chat_channel_id ON bronze.discord_chat_table(channel_id);
-CREATE INDEX IF NOT EXISTS idx_discord_chat_thread_id ON bronze.discord_chat_table(thread_id);
-CREATE INDEX IF NOT EXISTS idx_discord_chat_author_id ON bronze.discord_chat_table(author_id);
-CREATE INDEX IF NOT EXISTS idx_discord_chat_chat_created_at ON bronze.discord_chat_table(chat_created_at);
+CREATE INDEX IF NOT EXISTS idx_discord_chats_channel_id ON bronze.discord_chats(channel_id);
+CREATE INDEX IF NOT EXISTS idx_discord_chats_thread_id ON bronze.discord_chats(thread_id);
+CREATE INDEX IF NOT EXISTS idx_discord_chats_user_id ON bronze.discord_chats(discord_user_id);
+CREATE INDEX IF NOT EXISTS idx_discord_chats_chat_created_at ON bronze.discord_chats(chat_created_at);
 
 -- Add a unique constraint to prevent duplicate messages
-CREATE UNIQUE INDEX IF NOT EXISTS idx_discord_chat_unique_message 
-ON bronze.discord_chat_table(channel_id, message_id, thread_id) 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_discord_chats_unique_message 
+ON bronze.discord_chats(channel_id, message_id, thread_id) 
 WHERE thread_id IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_discord_chat_unique_channel_message 
-ON bronze.discord_chat_table(channel_id, message_id) 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_discord_chats_unique_channel_message 
+ON bronze.discord_chats(channel_id, message_id) 
 WHERE thread_id IS NULL; 
