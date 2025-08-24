@@ -8,4 +8,4 @@ CREATE TABLE silver.internal_text_chnl_convo_members (
 
 -- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_internal_text_chnl_convo_members_convo_id ON silver.internal_text_chnl_convo_members(convo_id);
-CREATE INDEX IF NOT EXISTS idx_internal_text_chnl_convo_members_member_id ON silver.internal_text_chnl_convo_members(member_id); 
+CREATE INDEX IF NOT EXISTS idx_internal_text_chnl_convo_members_member_id ON silver.internal_text_chnl_convo_members(member_id);
