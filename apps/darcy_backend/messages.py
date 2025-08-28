@@ -18,6 +18,7 @@ from pydantic import BaseModel
 # ================================ CUSTOM MESSAGE TYPES ================================
 
 
+# ============================Frontend -> Backend============================
 class GetEngineTypesRequest(WSMessage):
     """Custom message for getting engine types."""
     
@@ -71,6 +72,7 @@ class UseEngineRequest(WSMessage):
     class UseEngineRequestData(BaseModel):
         prompt: str
         session_id: str
+        channel_id: str
 
     type: str = "use_engine"
     message_id: str
@@ -86,3 +88,32 @@ class UseEngineResponse(WSResponse):
     type: str = "use_engine_res"
     message_id: str
     data: UseEngineResponseData
+
+# ============================Backend -> Frontend============================
+# Server-initiated confirmation messages
+class ConfirmationServerRequest(WSMessage):
+    """Server-initiated confirmation request."""
+
+    class ConfirmationServerRequestData(BaseModel):
+        request_type: str = "confirmation"
+        prompt: str
+        session_id: str
+        channel_id: str
+
+    type: str = "server_request"
+    message_id: str
+    server_initiated: bool = True
+    data: ConfirmationServerRequestData
+
+
+class ConfirmationServerResponse(WSResponse):
+    """Response to server-initiated confirmation."""
+
+    class ConfirmationServerResponseData(BaseModel):
+        response_type: str = "confirmation"
+        confirmed: bool
+        session_id: str
+
+    type: str = "server_response"
+    message_id: str
+    data: ConfirmationServerResponseData

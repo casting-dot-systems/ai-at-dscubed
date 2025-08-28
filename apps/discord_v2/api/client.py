@@ -2,7 +2,7 @@
 import asyncio
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable
 from enum import Enum
 import uuid
 import websockets
@@ -33,6 +33,8 @@ class WebSocketAPIClient:
         self.client = httpx.AsyncClient()
         self._reconnect_delay = 1.0
         self._max_reconnect_delay = 30.0
+        self._server_message_handlers: Dict[str, Callable] = {}
+        self.app_id: Optional[str] = None
 
     async def connect_websocket(self) -> Optional[str]:
         """Connect to the WebSocket"""
@@ -175,15 +177,17 @@ class WebSocketAPIClient:
                 message_data = json.loads(message_json)
                 print(f"Received message: {message_data}")
 
-
-
-                # Handle message
-                await self.response_queue.put(WSResponse(
-                    type=message_data.get("type", "unknown"),
-                    data=message_data.get("data", {}),
-                    message_id=message_data.get("message_id", str(uuid.uuid4()))
-                ))
-                print(f"Response queue: {self.response_queue}")
+                # Check if this is a server-initiated message
+                if message_data.get("type") == "server_request":
+                    await self._handle_server_request(message_data)
+                else:
+                    # Handle regular response messages
+                    await self.response_queue.put(WSResponse(
+                        type=message_data.get("type", "unknown"),
+                        data=message_data.get("data", {}),
+                        message_id=message_data.get("message_id", str(uuid.uuid4()))
+                    ))
+                    print(f"Response queue: {self.response_queue}")
             except ConnectionClosed:
                 logger.warning("WebSocket connection closed")
                 break
@@ -266,6 +270,38 @@ class WebSocketAPIClient:
             except Exception as e:
                 logger.error(f"Reconnection failed: {e}")
                 self._reconnect_delay = min(self._reconnect_delay * 2, self._max_reconnect_delay)
+    
+    def register_server_message_handler(self, request_type: str, handler: Callable) -> None:
+        """Register a handler for server-initiated messages of a specific type."""
+        self._server_message_handlers[request_type] = handler
+    
+    async def _handle_server_request(self, message_data: Dict[str, Any]) -> None:
+        """Handle server-initiated requests."""
+        try:
+            request_type = message_data.get("data", {}).get("request_type")
+            
+            if request_type in self._server_message_handlers:
+                handler = self._server_message_handlers[request_type]
+                # Call the handler with the message data
+                response_data = await handler(message_data)
+                await self.send_server_response(message_data.get("message_id"), response_data)
+            else:
+                logger.warning(f"No handler registered for server request type: {request_type}")
+        except Exception as e:
+            logger.error(f"Error handling server request: {e}")
+    
+    async def send_server_response(self, message_id: str, data: Dict[str, Any]) -> None:
+        """Send a response to a server-initiated message."""
+        if not self.websocket:
+            raise Exception("WebSocket not connected")
+        
+        response_message = WSMessage(
+            type="server_response",
+            message_id=message_id,
+            data=data
+        )
+        print(f"Sending server response: {response_message}")
+        await self._send_message(response_message)
     
     def _generate_message_id(self) -> str:
         """Generate a unique message ID"""

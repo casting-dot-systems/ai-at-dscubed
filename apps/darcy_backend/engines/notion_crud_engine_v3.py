@@ -1,6 +1,8 @@
 import asyncio
+import logging
 from pydantic import PrivateAttr
 import json
+import uuid
 from typing import Any, Callable, List, Optional
 
 from llmgine.llm import SessionID
@@ -13,6 +15,8 @@ from llmgine.llm.providers.providers import Providers
 from llmgine.llm.tools.tool_manager import ToolManager
 from llmgine.messages.commands import Command, CommandResult
 from llmgine.messages.events import Event
+from llmgineAPI.core.messaging_api import MessagingAPIWithEvents
+from llmgineAPI.websocket.connection_registry import ConnectionRegistry, get_connection_registry
 
 from org_tools.general.functions import store_fact
 from org_tools.gmail.gmail_client import read_emails, reply_to_email, send_email
@@ -28,6 +32,8 @@ from org_tools.brain.notion.notion_functions import (
     get_all_users,
     update_task,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class NotionCRUDEnginePromptCommand(Command):
@@ -71,6 +77,9 @@ class NotionCRUDEngineV3(Engine):
     _context_manager: SimpleChatHistory = PrivateAttr()
     _llm_manager: Gpt41Mini = PrivateAttr()
     _tool_manager: ToolManager = PrivateAttr()
+    _messaging_api: Optional[MessagingAPIWithEvents] = PrivateAttr()
+    _channel_id: Optional[str] = PrivateAttr()
+    _connection_registry: ConnectionRegistry = PrivateAttr()
 
     def __init__(
         self,
@@ -81,10 +90,8 @@ class NotionCRUDEngineV3(Engine):
 
         Args:
             session_id: The session identifier
-            api_key: OpenAI API key (defaults to environment variable)
-            model: The model to use
             system_prompt: Optional system prompt to set
-            message_bus: Optional MessageBus instance (from bootstrap)
+            messaging_api: Optional messaging API for server-initiated messages
         """
         super().__init__()
         # Use the provided message bus or create a new one
@@ -92,6 +99,7 @@ class NotionCRUDEngineV3(Engine):
         self._session_id = session_id
         self._temp_project_lookup = {}
         self._temp_task_lookup = {}
+        self._connection_registry = get_connection_registry()
 
         # Get API key from environment if not provided
 
@@ -124,15 +132,66 @@ class NotionCRUDEngineV3(Engine):
         await self._tool_manager.register_tool(send_email)
         await self._tool_manager.register_tool(read_emails)
         await self._tool_manager.register_tool(reply_to_email)
-        self._message_bus.register_command_handler(NotionCRUDEnginePromptCommand, self.handle_command, self._session_id)
-        # TODO: Unregister command handler when engine is unregistered
+        self._message_bus.register_command_handler(NotionCRUDEnginePromptCommand, self.handle_prompt_command, self._session_id)
+        self._message_bus.register_command_handler(NotionCRUDEngineConfirmationCommand, self.handle_confirmation_command, self._session_id)
 
     async def register_tools(self, function_list: List[Callable[..., Any]]) -> None:
         """Register tools for the engine."""
         for function in function_list:
             await self._tool_manager.register_tool(function)
 
-    async def handle_command(self, command: Command) -> CommandResult:
+    def set_messaging_api(self, messaging_api: MessagingAPIWithEvents) -> None:
+        """Set the messaging API for the engine."""
+        self._messaging_api = messaging_api
+
+    async def handle_confirmation_command(self, command: Command) -> CommandResult:
+        """Handle a confirmation command using WebSocket server-initiated messages."""
+        assert isinstance(command, NotionCRUDEngineConfirmationCommand)
+        print("--------------------------------")
+        print(f"Handling confirmation command: {command.prompt}")
+        print(f"Command: {command}")
+
+        if not self._messaging_api:
+            print("No messaging API or channel ID available")
+            return CommandResult(success=False, result=False)
+        print(f"Messaging API: {self._messaging_api}")
+
+        try:
+            # Get app_id from session mapping (this would need to be passed or looked up)
+            # For now, we'll use a method to get app_id from session_id
+            app_id = self._connection_registry.get_app_id_by_session(self._session_id)
+            logger.info(f"App ID fetched from session ID: {app_id}")
+            if not app_id:
+                print("No app ID found")
+                return CommandResult(success=False, result=False)
+            print(f"App ID: {app_id}")
+            # Send server-initiated confirmation request
+            response = await self._messaging_api.send_to_app_and_wait(
+                app_id=app_id,
+                message_type="server_request",
+                data={
+                    "request_type": "confirmation",
+                    "prompt": command.prompt,
+                    "session_id": str(self._session_id),
+                },
+                timeout=30.0
+            )
+            print(f"Response: {response}")
+            # Parse response
+            if response and response.data.get("response_type") == "confirmation":
+                confirmed = response.data.get("confirmed", False)
+                return CommandResult(success=True, result=confirmed)
+            else:
+                # Timeout or error - default to deny
+                return CommandResult(success=False, result=False)
+                
+        except Exception as e:
+            print(f"Error in confirmation: {e}")
+            # On error, default to deny for safety
+            return CommandResult(success=False, result=False)
+
+
+    async def handle_prompt_command(self, command: Command) -> CommandResult:
         """Handle a prompt command following OpenAI tool usage pattern.
 
         Args:
@@ -352,6 +411,14 @@ class NotionCRUDEngineV3(Engine):
 
     def add_context(self, context: str, role: str) -> None:
         self._context_manager.store_string(context, role)
+
+    def set_channel_id(self, channel_id: str) -> None:
+        """Set the channel ID for confirmations."""
+        self._channel_id = channel_id
+    
+    def set_app_id(self, app_id: str) -> None:
+        """Set the app ID for messaging."""
+        self._app_id = app_id
 
 
 async def main():

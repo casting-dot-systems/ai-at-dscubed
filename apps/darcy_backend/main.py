@@ -66,5 +66,15 @@ if __name__ == "__main__":
     from llmgineAPI.main import create_app
     app = create_app(api_factory=darcy_api)
     
+    # Get messaging API and store it for handlers to access (after app creation)
+    messaging_api = darcy_api.get_messaging_api()
+    
+    # Store messaging API in handler classes
+    LinkEngineHandler._messaging_api = messaging_api
+    UseEngineHandler._messaging_api = messaging_api
+    
+    # Also store in app state for other uses
+    app.state.messaging_api = messaging_api
+    
     # Run the server
     uvicorn.run(app, host="127.0.0.1", port=8000)

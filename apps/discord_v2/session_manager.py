@@ -55,7 +55,7 @@ STATUS_EMOJI = {
 class SessionData:
     session_id: SessionID
     message: discord.Message
-    session_status_msg: discord.Message
+    session_status_msg: Optional[discord.Message]
     session_msgs: List[discord.Message]
     author: discord.Member | discord.User
     channel: discord.TextChannel | discord.DMChannel
@@ -69,25 +69,26 @@ class SessionData:
 
     def __init__(self, session_id: SessionID, 
                  message: discord.Message, 
-                 session_status_msg: discord.Message, 
-                 session_msgs: List[discord.Message], 
-                 author: discord.Member | discord.User, 
-                 channel: discord.TextChannel | discord.DMChannel, 
+                 session_status_msg: Optional[discord.Message] = None, 
+                 session_msgs: List[discord.Message] = None, 
+                 author: discord.Member | discord.User = None, 
+                 channel: discord.TextChannel | discord.DMChannel = None, 
                  data: Optional[Dict[str, Any]] = None,
                  engine_id: Optional[EngineID] = None,
                  expires_at: Optional[datetime] = None):
         self.session_id = session_id
         self.message = message
         self.session_status_msg = session_status_msg
-        self.session_msgs = session_msgs
-        self.author = author
-        self.channel = channel
+        self.session_msgs = session_msgs or []
+        self.author = author or message.author
+        self.channel = channel or message.channel
         self.status = SessionStatus.STARTING
         self.result = None
-        self.data = {}
+        self.data = data or {}
         self.created_at = discord.utils.utcnow()
         self.updated_at = discord.utils.utcnow()
         self.engine_id = engine_id
+        self.expires_at = expires_at
 
 class SessionManager:
     def __init__(self, bot: commands.Bot):
@@ -110,6 +111,11 @@ class SessionManager:
     async def create_session(self, user_id: str) -> SessionID:
         if self.api_client is None:
             raise Exception("API client not initialized")
+        
+        # Register confirmation handler if not already registered
+        if "confirmation" not in self.api_client._server_message_handlers:
+            print("Confirmation handler registered")
+            self.api_client.register_server_message_handler("confirmation", self._handle_confirmation_request)
         
         await self.update_session_status(
                 user_id,
@@ -134,13 +140,19 @@ class SessionManager:
         # Check if the sender is already in a session
         user_id = str(message.author.id)
         
-        # Create initial session message
+        # Always create a fresh session status message for each request
         session_msg = await message.reply(f"🔄 **Thinking...**")
         
-        
         if user_id in self.active_sessions:
-            session_id : SessionID = self.active_sessions[user_id].session_id
+            # Reuse existing session but update with fresh status message
+            session_id = self.active_sessions[user_id].session_id
+            
+            # Update the existing session with the new status message
+            self.active_sessions[user_id].session_status_msg = session_msg
+            self.active_sessions[user_id].message = message
+            self.active_sessions[user_id].updated_at = discord.utils.utcnow()
         else:
+            # Create new session
             session_id = await self.create_session(user_id)
         
             # Initialize session data
@@ -210,14 +222,36 @@ class SessionManager:
         if message == "finished":
             return None
 
-        if message:
+        if message and session.session_status_msg:
             emoji = STATUS_EMOJI.get(status, "🔄")
-            await session.session_status_msg.edit(
-                content=f"{emoji} **{message}**"
-            )
+            try:
+                await session.session_status_msg.edit(
+                    content=f"{emoji} **{message}**"
+                )
+            except discord.NotFound:
+                # Message was already deleted, clear the reference
+                session.session_status_msg = None
+            except discord.HTTPException as e:
+                # Other Discord API errors (permissions, etc.)
+                print(f"Warning: Could not update status message: {e}")
+            except Exception as e:
+                # Any other unexpected errors
+                print(f"Unexpected error updating status message: {e}")
 
-        if status == SessionStatus.COMPLETED:
-            await session.session_status_msg.delete()
+        if status == SessionStatus.COMPLETED or status == SessionStatus.IDLE:
+            if session.session_status_msg:
+                try:
+                    await session.session_status_msg.delete()
+                except discord.NotFound:
+                    # Message was already deleted
+                    pass
+                except discord.HTTPException as e:
+                    print(f"Warning: Could not delete status message: {e}")
+                except Exception as e:
+                    print(f"Unexpected error deleting status message: {e}")
+                finally:
+                    # Always clear the reference after attempting deletion
+                    session.session_status_msg = None
 
         return True
 
@@ -300,3 +334,45 @@ class SessionManager:
         # del self.active_sessions[session_id]
 
         return True
+    
+    async def _handle_confirmation_request(self, message_data: dict) -> Dict[str, Any]:
+        """Handle server-initiated confirmation requests."""
+        try:
+            data = message_data.get("data", {})
+
+            print(f"Handling confirmation request data: {data}")
+            
+            # Get the Discord channel
+            channel = self.bot.get_channel(int(data.get("channel_id")))
+            if not channel:
+                return {"response_type": "confirmation", "confirmed": False, "session_id": data.get("session_id")}
+            
+            # Create YesNoView for user interaction
+            view = YesNoView(timeout=30, original_author=None)  # We'll need to get the author somehow
+            
+            # Send confirmation message to the specified channel
+            confirmation_msg = await channel.send(
+                content=f"⚠️ **Confirmation Required**: {data.get('prompt')}",
+                view=view
+            )
+            
+            # Wait for user response
+            await view.wait()
+            
+            # Process result and send response back to server
+            confirmed = view.value if view.value is not None else False
+            
+            # Update the message based on result
+            if view.value is None:
+                await confirmation_msg.edit(content="⏱️ Confirmation timed out", view=None)
+            else:
+                resp_text = f"✅ **Confirmed**: {data.get('prompt')}" if confirmed else f"❌ **Denied**: {data.get('prompt')}"
+                await confirmation_msg.edit(content=resp_text, view=None)
+            
+            # Send response back to server
+            return {"response_type": "confirmation", "confirmed": True, "session_id": data.get("session_id")}
+            
+        except Exception as e:
+            print(f"Error handling confirmation request: {e}")
+            # Send denial on error
+            return {"response_type": "confirmation", "confirmed": False, "session_id": data.get("session_id")}

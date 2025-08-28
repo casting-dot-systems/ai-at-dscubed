@@ -89,7 +89,7 @@ class DarcyBot:
             
             # Process message through engine manager
             result = await self.engine_manager.process_user_message(
-                processed_message.content, session_id, str(message.author.id)
+                processed_message.content, session_id, str(message.author.id), str(message.channel.id)
             )
             
             # Send response

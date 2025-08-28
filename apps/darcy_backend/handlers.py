@@ -3,6 +3,7 @@ import logging
 import uuid
 
 from llmgine.llm import SessionID
+from llmgineAPI.core.messaging_api import MessagingAPIWithEvents
 from llmgineAPI.models.websocket import WSError, WSErrorCode, WSMessage, WSResponse
 from llmgineAPI.websocket.base import BaseHandler
 from llmgineAPI.services.engine_service import EngineService
@@ -21,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 class LinkEngineHandler(BaseHandler):
     """Handler for linking an engine."""
+
+    _messaging_api: Optional[MessagingAPIWithEvents] = None
     
     @property
     def message_type(self) -> str:
@@ -85,6 +88,8 @@ class LinkEngineHandler(BaseHandler):
                 # Initialize the engine (register tools, etc.) if it has an initialize method
                 if hasattr(engine, 'initialize'):
                     await engine.initialize()
+                if isinstance(engine, NotionCRUDEngineV3) and self._messaging_api:
+                    engine.set_messaging_api(self._messaging_api)
             else:
                 return WSError(
                     type="error",
@@ -140,6 +145,8 @@ class LinkEngineHandler(BaseHandler):
 
 class UseEngineHandler(BaseHandler):
     """Handler for using registered engines."""
+
+    _messaging_api: Optional[MessagingAPIWithEvents] = None
     
     @property
     def message_type(self) -> str:
@@ -245,6 +252,7 @@ class UseEngineHandler(BaseHandler):
                     details=None
                 )
             )
+
 
 class GetEngineTypesHandler(BaseHandler):
 

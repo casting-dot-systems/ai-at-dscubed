@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(source:*)",
+      "Bash(uv run:*)"
+    ],
+    "deny": []
+  }
+}

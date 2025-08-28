@@ -86,7 +86,7 @@ class EngineManager:
             )
             return False
 
-    async def process_user_message(self, prompt: str, session_id: SessionID, user_id: str) -> str:
+    async def process_user_message(self, prompt: str, session_id: SessionID, user_id: str, channel_id: str) -> str:
         """Process a user message through the linked engine."""
         # Ensure we have an API client and linked engine
         if not self.api_client:
@@ -113,12 +113,13 @@ class EngineManager:
                 "use_engine",
                 {
                     "prompt": prompt,
-                    "session_id": session_id
+                    "session_id": session_id,
+                    "channel_id": channel_id
                 }
             )
             
             if response and response.data.get("result"):
-                # Update session status back to idle
+                # Update session status to idle
                 await self.session_manager.update_session_status(
                     user_id, SessionStatus.IDLE, "Ready"
                 )
