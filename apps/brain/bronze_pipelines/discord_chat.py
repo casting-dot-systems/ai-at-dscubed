@@ -2,16 +2,11 @@ import argparse
 import os
 import asyncio
 from dotenv import load_dotenv
-<<<<<<< HEAD:brain/bronze/pipelines/discord_chat.py
-from brain.bronze.src.extractor.discord_extractor import DiscordExtractor
-from brain.bronze.src.utils.pipeline import Pipeline, get_ddl_path
-=======
 from data_source_extractors.discord_extractor import DiscordExtractor
 from pipeline import Pipeline
 import sqlalchemy as sa
 
 
->>>>>>> f/brain:apps/brain/bronze_pipelines/discord_chat.py
 
 # TODO: integrate run_pipeline function from pipeline.py
 def main():
