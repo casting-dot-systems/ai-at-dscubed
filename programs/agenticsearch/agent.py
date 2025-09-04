@@ -3,6 +3,7 @@ import json
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
+
 from searchtools import Tools
 
 
@@ -10,7 +11,7 @@ class SearchAgent:
     def __init__(self):
         """Initialize the AI agent with core components"""
         self.memory: List[Dict[str, Any]] = []         # conversation/history snapshots
-        self.tools = Tools()                            # Available tools/actions
+        self.tools = Tools()                           # Available tools/actions
         self.state: Dict[str, Any] = {                 # per-turn state
             "context": [],
             "step_count": 0
@@ -53,7 +54,8 @@ class SearchAgent:
             self._remember_snapshot(user_query, thought, output)
 
             # Empty/irrelevant guard (prevents infinite looping on empty results)
-            is_empty = (output is None) or (output == []) or (output == {})
+            is_empty = (output is None) or (output == []) or (output == {}) \
+                       or (isinstance(output, dict) and not output.get("ok", True))
             if is_empty:
                 empty_count += 1
                 if empty_count >= 2:
@@ -101,14 +103,37 @@ class SearchAgent:
         else:
             user_query = str(user_query_or_perception)
 
-        available = [t["name"] for t in self.tools.get_available_tools()]
+        available = self.tools.get_available_tools()
 
+        # --- Upgraded planner prompt to stop loops and guide SQL patterns (8/10 version) ---
         system_prompt = (
-            "You are a SQL data agent. Your goal is to help users query and "
-            "retrieve relevant data from a PostgreSQL database. Available tools:\n"
-            f"{', '.join(available)}.\n\n"
-            "Return ONLY valid JSON with keys: action, args, reason.\n"
-            "Example: {\"action\":\"get_tables\",\"args\":{},\"reason\":\"list tables\"}"
+            "You are a planner for a small SQL data agent that can only use these actions: "
+            f"{', '.join(available)}.\n"
+            "Your job is to pick the NEXT best action and its args, then stop.\n"
+            "Return ONLY valid JSON with keys exactly: action, args, reason.\n\n"
+            "RULES:\n"
+            "1) Do NOT call the same action twice in a row with the same args.\n"
+            "2) If you already listed tables (get_tables), move on to get_schema or execute_sql.\n"
+            "3) Prefer execute_sql once you know the needed tables/columns.\n"
+            "4) If the user asks for counts, use SELECT COUNT(*).\n"
+            "5) If the user asks for 'last/most recent/top N messages', use ORDER BY timestamp DESC LIMIT N.\n"
+            "6) If the user refers to a channel by name, JOIN messages m with channels c on m.channel_id=c.channel_id "
+            "   and filter WHERE c.channel_name = '<name>'.\n"
+            "7) If the user refers to a username, JOIN messages m with users u on m.user_id=u.user_id "
+            "   and filter WHERE u.username = '<name>'.\n"
+            "8) If you lack a column name, first call get_schema('<table>').\n"
+            "9) If you cannot progress, use ask_clarification with a very specific question.\n\n"
+            "EXAMPLES OF GOOD NEXT STEPS:\n"
+            "- User: 'What are the last 5 messages?' → action: 'execute_sql', "
+            "  args: {\"sql\": \"SELECT message_id, user_id, channel_id, content, timestamp "
+            "                   FROM messages ORDER BY timestamp DESC LIMIT 5;\"}\n"
+            "- User: 'Show usernames who posted in support' → action: 'execute_sql', "
+            "  args: {\"sql\": \"SELECT DISTINCT u.username "
+            "                   FROM users u JOIN messages m ON u.user_id=m.user_id "
+            "                   JOIN channels c ON m.channel_id=c.channel_id "
+            "                   WHERE c.channel_name='support';\"}\n\n"
+            "FORMAT:\n"
+            "Return ONLY JSON like {\"action\":\"...\",\"args\":{...},\"reason\":\"...\"}"
         )
         user_prompt = f"User query: {user_query}"
 
@@ -116,13 +141,23 @@ class SearchAgent:
             response = self.tools.llm_call(system_prompt + "\n\n" + user_prompt)
             parsed = json.loads(response)
 
+            # --- Strict schema check for planner output ---
             if not self.validate_action(parsed):
-                return self.fallback_action("Invalid action structure")
+                return self.fallback_action("Planner must return JSON with keys {action,args,reason} only.")
 
+            # --- Disallow unknown actions ---
             if parsed["action"] not in available:
                 return self.fallback_action(
                     f"Invalid action: {parsed['action']}. Available actions: {available}"
                 )
+
+            # --- Anti-repeat guard: don't allow same action+args twice in a row ---
+            if self.state.get("context"):
+                prev = self.state["context"][-1]
+                same_action = parsed["action"] == prev.get("action")
+                same_args = parsed.get("args", {}) == prev.get("args", {})
+                if same_action and same_args:
+                    return self.fallback_action("Repeated same action; choose a different next step.")
 
             return parsed
 
@@ -156,8 +191,19 @@ class SearchAgent:
                 return self.tools.generate_sql(query)
 
             if action == "execute_sql":
-                sql = args.get("sql") or self.tools.generate_sql(args.get("query", ""))
-                return self.tools.execute_sql(sql)
+                # Accept either a direct SQL string or a natural-language query
+                if "sql" in args and args["sql"]:
+                    sql_text = args["sql"]
+                elif "query" in args and args["query"]:
+                    gen = self.tools.generate_sql(args["query"])
+                    if isinstance(gen, dict) and gen.get("ok") and gen.get("sql"):
+                        sql_text = gen["sql"]
+                    else:
+                        return {"error": f"Could not generate SQL: {gen}"}
+                else:
+                    return {"error": "execute_sql requires 'sql' or 'query'."}
+
+                return self.tools.execute_sql(sql_text)
 
             if action == "stop_thinking":
                 return {"message": "Stopped by request."}
@@ -208,8 +254,8 @@ class SearchAgent:
 
     def validate_action(self, action: Dict[str, Any]) -> bool:
         """Validate the action structure returned by the LLM."""
-        required = ["action", "args", "reason"]
-        return all(k in action for k in required)
+        required = {"action", "args", "reason"}
+        return isinstance(action, dict) and required.issubset(action.keys())
 
     def fallback_action(self, error_message: str) -> Dict[str, Any]:
         """Fallback action if reasoning fails."""
