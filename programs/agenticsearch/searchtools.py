@@ -1,216 +1,323 @@
-# searchtools.py
+# searchtools.py 
+
+from __future__ import annotations
 import os
+import re
 import json
-from typing import List, Dict, Any, Optional
+import sqlite3
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
-import psycopg2
-import psycopg2.extras
+# --- LLM  ------------------------------------------------------------
 
+# pip install -U google-generativeai
+import google.generativeai as genai
+
+
+# --- Config ------------------------------------------------------------------
+
+# DB lives next to this file as "discord_mock.db"
+DB_PATH = Path(__file__).parent / "discord_mock.db"
+
+# When True, we only allow SELECTs via execute_sql (safer for demos)
+READ_ONLY = True
+
+
+# --- Helpers -----------------------------------------------------------------
+
+def _connect() -> sqlite3.Connection:
+    if not DB_PATH.exists():
+        raise FileNotFoundError(
+            f"SQLite database not found at {DB_PATH}. "
+            "Run setup_mock_db.py first."
+        )
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # rows behave like dicts
+    return conn
+
+
+def _rows_to_dicts(rows: List[sqlite3.Row]) -> List[Dict[str, Any]]:
+    return [dict(r) for r in rows]
+
+
+def _clean_sql(sql: str) -> str:
+    return sql.strip().rstrip(";") + ";"
+
+
+# --- Public API used by your agent -------------------------------------------
+
+def get_tables() -> Dict[str, Any]:
+    """List user tables in the SQLite database."""
+    try:
+        with _connect() as conn:
+            cur = conn.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type='table'
+                  AND name NOT LIKE 'sqlite_%'
+                ORDER BY name;
+                """
+            )
+            tables = [r["name"] for r in cur.fetchall()]
+        return {"ok": True, "tables": tables}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def get_schema(table_name: str) -> Dict[str, Any]:
+    """Return column schema for a table using PRAGMA table_info."""
+    try:
+        if not table_name:
+            return {"ok": False, "error": "table_name is required"}
+        with _connect() as conn:
+            cur = conn.execute(f"PRAGMA table_info({table_name});")
+            cols = [
+                {
+                    "cid": r["cid"],
+                    "name": r["name"],
+                    "type": r["type"],
+                    "notnull": bool(r["notnull"]),
+                    "default": r["dflt_value"],
+                    "pk": bool(r["pk"]),
+                }
+                for r in cur.fetchall()
+            ]
+        if not cols:
+            return {"ok": False, "error": f"Table '{table_name}' not found."}
+        return {"ok": True, "table": table_name, "columns": cols}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def execute_sql(query: str, params: Optional[Tuple[Any, ...]] = None) -> Dict[str, Any]:
+    """Run a SQL query and return rows + column names.
+       By default we only allow SELECTs (safe demos)."""
+    try:
+        if not query or not query.strip():
+            return {"ok": False, "error": "Query is empty."}
+
+        sql = _clean_sql(query)
+
+        if READ_ONLY:
+            # quick safety check (allow SELECT or CTE starting with WITH)
+            first = re.split(r"\s+", sql.strip(), maxsplit=1)[0].upper()
+            if first != "SELECT" and not sql.upper().startswith("WITH "):
+                return {"ok": False, "error": "Only SELECT queries are allowed in demo mode."}
+            # reject multiple statements in one call
+            if ";" in sql.strip()[:-1]:
+                return {"ok": False, "error": "Multiple statements are not allowed."}
+
+        with _connect() as conn:
+            cur = conn.execute(sql, params or ())
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description] if cur.description else []
+        return {"ok": True, "columns": cols, "rows": _rows_to_dicts(rows)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def generate_sql(natural_query: str) -> Dict[str, Any]:
+    """
+    Small heuristic to turn a plain request into SQL for the mock schema.
+    Matches YOUR SQLite schema from setup_mock_db.py:
+
+      users(user_id INTEGER PK, username TEXT, join_date DATE)
+      channels(channel_id INTEGER PK, channel_name TEXT)
+      messages(message_id INTEGER PK, user_id, channel_id, content TEXT, timestamp DATE)
+
+    This is only a fallback; with Gemini wired in, the agent will usually plan
+    with llm_call → decide tool → (maybe) call this helper when asked.
+    """
+    try:
+        if not natural_query:
+            return {"ok": False, "error": "natural_query is empty."}
+
+        q = natural_query.lower()
+
+        # If the user already gave SQL, just return it.
+        if re.search(r"\bselect\b", q):
+            return {"ok": True, "sql": _clean_sql(natural_query)}
+
+        # List tables
+        if "table" in q and ("list" in q or "what" in q or "which" in q):
+            return {
+                "ok": True,
+                "sql": (
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
+                ),
+            }
+
+        # Schemas
+        if "schema" in q and "user" in q:
+            return {"ok": True, "sql": "PRAGMA table_info(users);"}
+        if "schema" in q and "channel" in q:
+            return {"ok": True, "sql": "PRAGMA table_info(channels);"}
+        if "schema" in q and "message" in q:
+            return {"ok": True, "sql": "PRAGMA table_info(messages);"}
+
+        # Basic selects that match your column names
+        if "user" in q:
+            return {"ok": True, "sql": "SELECT user_id, username, join_date FROM users ORDER BY user_id LIMIT 100;"}
+
+        if "channel" in q:
+            return {"ok": True, "sql": "SELECT channel_id, channel_name FROM channels ORDER BY channel_id LIMIT 100;"}
+
+        if "message" in q:
+            # recent messages
+            return {
+                "ok": True,
+                "sql": (
+                    "SELECT message_id, user_id, channel_id, content, timestamp "
+                    "FROM messages ORDER BY timestamp DESC LIMIT 100;"
+                ),
+            }
+
+        # Fallback: list tables
+        return {
+            "ok": True,
+            "sql": (
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
+            ),
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def healthcheck() -> Dict[str, Any]:
+    """Quick check the DB is reachable."""
+    try:
+        with _connect() as conn:
+            conn.execute("SELECT 1;").fetchone()
+        return {"ok": True, "db_path": str(DB_PATH)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+# --- Tools wrapper class (what agent imports) --------------------------------
 
 class Tools:
     """
-    Small toolkit for the agent:
-      - PostgreSQL metadata & query execution
-      - Lightweight, mock LLM router that returns {action, args, reason} JSON
+    Wrap functions so agent code can call:
+      tools.get_tables(), tools.get_schema(...),
+      tools.generate_sql(...), tools.execute_sql(...), tools.llm_call(prompt).
+    Also provides get_available_tools() for the planner.
     """
 
-    def __init__(
-        self,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        database: Optional[str] = None,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-    ):
-        # Prefer env vars, allow explicit overrides
-        host = host or os.getenv("PGHOST", "localhost")
-        port = int(port or os.getenv("PGPORT", "5432"))
-        database = database or os.getenv("PGDATABASE", "postgres")
-        user = user or os.getenv("PGUSER", "postgres")
-        password = password or os.getenv("PGPASSWORD", "")
+    # ========= Basic tool calls =========
+    def get_tables(self) -> Dict[str, Any]:
+        return get_tables()
 
-        self._conn = None
-        try:
-            self._conn = psycopg2.connect(
-                host=host, port=port, dbname=database, user=user, password=password
-            )
-            self._conn.autocommit = True
-        except Exception as e:
-            # Do not crash on import—allow the app to run without DB
-            self._conn = None
-            self._last_connect_error = str(e)
+    def get_schema(self, table_name: str) -> Dict[str, Any]:
+        return get_schema(table_name)
 
-        self._available_tools = [
-            {"name": "get_tables", "description": "List all database tables"},
-            {"name": "get_schema", "description": "Get schema for a given table (args: table_name:str)"},
-            {"name": "generate_sql", "description": "Generate SQL from natural language (args: query:str)"},
-            {"name": "execute_sql", "description": "Run a SQL query (args: sql:str OR query:str)"},
-            {"name": "stop_thinking", "description": "Stop the current reasoning loop"},
-            {"name": "ask_clarification", "description": "Ask the user to clarify the request (args: message:str)"},
+    def execute_sql(self, query: str, params: Optional[Tuple[Any, ...]] = None) -> Dict[str, Any]:
+        return execute_sql(query, params)
+
+    def generate_sql(self, query: str) -> Dict[str, Any]:
+        return generate_sql(query)
+
+    def healthcheck(self) -> Dict[str, Any]:
+        return healthcheck()
+
+    def get_available_tools(self) -> List[str]:
+        # Keep as a simple list of strings (your agent expects a list)
+        return [
+            "get_tables",
+            "get_schema",
+            "generate_sql",
+            "execute_sql",
+            "ask_clarification",
+            "stop_thinking",
         ]
 
-    # -------------------- DB helpers --------------------
-
-    def _require_conn(self):
-        if not self._conn:
-            raise RuntimeError(
-                "Database connection is not available. "
-                "Set PGHOST/PGPORT/PGDATABASE/PGUSER/PGPASSWORD or pass params explicitly."
-                + (f" Last connect error: {getattr(self, '_last_connect_error', '')}" or "")
-            )
-
-    def get_tables(self) -> List[str]:
-        """Return list of public schema tables."""
-        self._require_conn()
-        with self._conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(
-                """
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_schema = 'public'
-                ORDER BY table_name;
-                """
-            )
-            return [row["table_name"] for row in cur.fetchall()]
-
-    def get_schema(self, table_name: Optional[str] = None) -> Dict[str, Any]:
-        """Return schema for a specific table or all public tables (may be large)."""
-        self._require_conn()
-        with self._conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            if table_name:
-                cur.execute(
-                    """
-                    SELECT column_name, data_type, is_nullable
-                    FROM information_schema.columns
-                    WHERE table_schema='public' AND table_name = %s
-                    ORDER BY ordinal_position;
-                    """,
-                    (table_name,),
-                )
-                cols = [dict(row) for row in cur.fetchall()]
-                return {table_name: cols}
-            else:
-                # Build schema for all public tables
-                schema_dict: Dict[str, Any] = {}
-                for tbl in self.get_tables():
-                    schema_dict.update(self.get_schema(tbl))
-                return schema_dict
-
-    def generate_sql(self, query: str) -> str:
-        """
-        Naive NL->SQL placeholder.
-        Replace with a real LLM or template as needed.
-        """
-        q = (query or "").lower()
-        if "users" in q and ("all" in q or "list" in q or "find" in q):
-            return "SELECT * FROM public.users LIMIT 100;"
-        if "orders" in q and ("all" in q or "list" in q or "find" in q):
-            return "SELECT * FROM public.orders LIMIT 100;"
-        if "tables" in q:
-            # Helpful fallback: return a query that lists tables
-            return (
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema='public' ORDER BY table_name;"
-            )
-        # Very safe default
-        return "SELECT NOW() AS server_time;"
-
-    def execute_sql(self, sql: str) -> List[Dict[str, Any]]:
-        """Execute SQL and return rows as list[dict]; handle 'no rows' gracefully."""
-        self._require_conn()
-        with self._conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(sql)
-            try:
-                rows = cur.fetchall()
-                return [dict(r) for r in rows]
-            except psycopg2.ProgrammingError:
-                # e.g., DDL or commands without result sets
-                return [{"message": "Query executed successfully but returned no rows"}]
-
-    def search_database(self, query: str) -> List[Dict[str, Any]]:
-        """One-shot: generate SQL and execute it."""
-        sql = self.generate_sql(query)
-        return self.execute_sql(sql)
-
-    def close(self) -> None:
-        """Close the DB connection if open."""
-        try:
-            if self._conn:
-                self._conn.close()
-        except Exception:
-            pass
-        self._conn = None
-
-    # -------------------- Tool registry / validation --------------------
-
-    def get_available_tools(self) -> List[Dict[str, str]]:
-        return self._available_tools
-
-    def validate_tool(self, tool_name: str) -> bool:
-        return any(t["name"] == tool_name for t in self._available_tools)
-
-    # -------------------- Mock LLM router --------------------
-
+    # ========= Real LLM call  =========
+    # Returns a STRING containing JSON because your agent does: json.loads(response)
     def llm_call(self, prompt: str) -> str:
         """
-        Extremely simple heuristic to return a valid JSON decision:
-        { "action": <tool>, "args": {...}, "reason": "..." }
+        Calls Gemini 2.5 Flash. Expects to return ONLY a JSON string when the
+        agent is planning actions, OR a short 'Yes'/'No' when the sufficiency
+        gate asks for that.
 
-        This lets you run the demo without a real LLM.
-        Swap this out with an actual LLM API when ready.
+        Environment:
+          - Set GEMINI_API_KEY in your shell before running:
+              PowerShell:  $env:GEMINI_API_KEY="YOUR_KEY"
+              bash/zsh:    export GEMINI_API_KEY="YOUR_KEY"
         """
-        text = (prompt or "").lower()
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            # Return a JSON that tells the agent to ask for setup
+            return json.dumps({
+                "action": "ask_clarification",
+                "args": {"message": "GEMINI_API_KEY is not set. Please configure your API key."},
+                "reason": "missing API key"
+            })
 
-        # Try to infer a target table name when asking for schema
-        table_name = None
-        # crude extraction after "schema for/of <name>"
-        for key in ["schema for", "schema of"]:
-            if key in text:
-                after = text.split(key, 1)[1].strip()
-                # take first token that looks like a word
-                table_name = after.split()[0].strip(" .,:;\"'`()[]{}")
-                break
-        if not table_name:
-            # also catch "schema for the users table"
-            for key in ["users", "orders"]:
-                if f"{key} table" in text or f"table {key}" in text:
-                    table_name = key
-                    break
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.5-flash")
 
-        # Route by keywords
-        if "stop" in text and "think" in text:
-            decision = {"action": "stop_thinking", "args": {}, "reason": "User requested stop"}
-        elif "what tables" in text or "list tables" in text or "tables are in" in text:
-            decision = {"action": "get_tables", "args": {}, "reason": "List available tables"}
-        elif "schema" in text:
-            decision = {
-                "action": "get_schema",
-                "args": {"table_name": table_name} if table_name else {},
-                "reason": f"Show schema{f' for {table_name}' if table_name else ''}",
-            }
-        elif "execute sql" in text or "run sql" in text:
-            # If the prompt includes a SELECT, use it; else fall back to generate_sql(query)
-            sql_snippet = None
-            if "select " in text:
-                # very naive slice of 'select ...'
-                sql_snippet = "select " + text.split("select ", 1)[1].split("\n", 1)[0]
-            if sql_snippet:
-                decision = {"action": "execute_sql", "args": {"sql": sql_snippet}, "reason": "Execute provided SQL"}
-            else:
-                decision = {
-                    "action": "execute_sql",
-                    "args": {"query": "users"},  # fallback—agent.act will generate SQL from this query
-                    "reason": "Execute generated SQL for the user request",
-                }
-        elif "generate sql" in text or "find all" in text or "list all" in text:
-            # Try to pass original intent through as 'query' (best-effort)
-            decision = {"action": "generate_sql", "args": {"query": prompt}, "reason": "Generate SQL from NL query"}
+        # Make outputs deterministic
+        generation_config = {
+            "temperature": 0.0,
+            "top_p": 0.0,
+            "top_k": 1,
+        }
+
+        # Two possible modes:
+        # 1) Planner prompt (we must return ONLY JSON with action/args/reason).
+        # 2) Sufficiency gate prompt (expects 'Yes' or 'No').
+        #
+        # *** FIX: looser detection ***
+        is_planner = "return only valid json" in prompt.lower()
+
+        if is_planner:
+            res = model.generate_content(
+                ["You must return ONLY JSON with keys: action, args, reason. No extra text.", prompt],
+                generation_config=generation_config,
+            )
+            text = (res.text or "").strip()
+
+            # Try parse as JSON directly
+            try:
+                obj = json.loads(text)
+            except Exception:
+                # Try to find a JSON object in any extra text
+                m = re.search(r"\{.*\}", text, flags=re.DOTALL)
+                if not m:
+                    return json.dumps({
+                        "action": "ask_clarification",
+                        "args": {"message": "I could not produce strict JSON. Please rephrase."},
+                        "reason": "formatting safeguard"
+                    })
+                candidate = m.group(0)
+                try:
+                    obj = json.loads(candidate)
+                except Exception:
+                    return json.dumps({
+                        "action": "ask_clarification",
+                        "args": {"message": "I could not produce strict JSON. Please rephrase."},
+                        "reason": "formatting safeguard"
+                    })
+
+            # Schema check: must be a dict with action/args/reason
+            if not isinstance(obj, dict) or not {"action", "args", "reason"} <= set(obj.keys()):
+                return json.dumps({
+                    "action": "ask_clarification",
+                    "args": {"message": "Planner must return {action,args,reason} JSON only."},
+                    "reason": "schema check failed"
+                })
+
+            return json.dumps(obj)
+
         else:
-            # Default: introspect first, then the agent loop/sufficiency gate will decide next step
-            decision = {"action": "get_tables", "args": {}, "reason": "Default to listing tables"}
-
-        return json.dumps(decision)
-
-    
-
-
+            # Sufficiency gate (expects 'Yes' or 'No')
+            res = model.generate_content(
+                ["Answer ONLY with Yes or No.", prompt],
+                generation_config=generation_config,
+            )
+            text = (res.text or "").strip()
+            if not text:
+                return "No"
+            return "Yes" if text.lower().startswith("y") else "No"
