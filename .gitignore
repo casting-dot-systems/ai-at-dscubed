@@ -158,3 +158,5 @@ node_modules/
 *.pickle
 credentials.json
 token.pickle
+client_secret.json
+token.json
