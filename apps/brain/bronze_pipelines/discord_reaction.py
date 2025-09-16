@@ -1,7 +1,13 @@
 import argparse
 import os
+import sys
 import asyncio
 import json
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from dotenv import load_dotenv
 from data_source_extractors.discord_extractor import DiscordExtractor
 from pipeline import Pipeline, get_ddl_path
@@ -28,7 +34,7 @@ def main():
     discord_reaction_extractor = DiscordExtractor()
 
     raw_data = asyncio.run(discord_reaction_extractor.fetch_discord_reactions()) # Extract
-    df = asyncio.run(discord_reaction_extractor.parse_discord_data(raw_data)) # Transform
+    df = discord_reaction_extractor.parse_discord_data(raw_data) # Transform (synchronous now)
     
     # Output for validation
     if args.output_format == 'json':
@@ -40,13 +46,15 @@ def main():
     
     print(f"\n=== SUMMARY ===")
     print(f"Total reactions extracted: {len(raw_data)}")
+    print(f"Validate-only mode: {args.validate_only}")
     
     # Only load to database if not in validate-only mode
     if not args.validate_only:
+        print("Loading data to database...")
         discord_reaction_pipeline = Pipeline(schema='bronze')
         
-        # Get the DDL file path - use relative path from current location
-        ddl_path = '../../libs/brain/bronze/DDL/discord_reaction.sql'
+        # Get the DDL file path
+        ddl_path = get_ddl_path('discord_reaction.sql')
         
         # Execute DDL to create table if needed
         discord_reaction_pipeline.execute_ddl(ddl_path)
@@ -54,7 +62,7 @@ def main():
         # Load data to database
         discord_reaction_pipeline.write_dataframe(
             df=df,
-            table_name='discord_reaction',
+            table_name='discord_reactions',
             if_exists='append'
         )
         

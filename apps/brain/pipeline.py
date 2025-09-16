@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Optional, Any, Type
+from typing import Optional, Any, Type, Dict
 from dotenv import load_dotenv
 import sqlalchemy as sa
 from sqlalchemy.engine import Engine
@@ -64,7 +64,8 @@ class Pipeline:
     def write_dataframe(self, 
                        df: pd.DataFrame,
                        table_name: str,
-                       if_exists: str = 'append') -> None:
+                       if_exists: str = 'append',
+                       dtype: Optional[dict] = None) -> None:
         """
         Write DataFrame to database.
         
@@ -72,14 +73,21 @@ class Pipeline:
             df: DataFrame to write
             table_name: Target table name
             if_exists: How to behave if table exists ('fail', 'replace', 'append')
+            dtype: Optional dictionary of column names to SQL types
         """
         try:
+            # If dtype not provided, use default pandas to_sql behavior
+            # Discord IDs are now stored as strings to match DDL TEXT columns
+            if dtype is None:
+                dtype = {}
+            
             df.to_sql(
                 table_name,
                 self.engine,
                 schema=self.schema,
                 if_exists=if_exists,
-                index=False
+                index=False,
+                dtype=dtype
             )
             self.logger.info(f"Successfully wrote data to {self.schema}.{table_name}")
             
@@ -97,7 +105,8 @@ def get_ddl_path(ddl_filename: str) -> str:
     Returns:
         str: Absolute path to the DDL file
     """
-    return str(Path(__file__).parent.parent / 'DDL' / ddl_filename)
+    # DDL files are located in libs/brain/bronze/DDL/
+    return str(Path(__file__).parent.parent.parent / 'libs' / 'brain' / 'bronze' / 'DDL' / ddl_filename)
 
 def run_pipeline(extractor_class: Type,
                 ddl_filename: str,

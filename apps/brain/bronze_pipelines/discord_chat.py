@@ -1,9 +1,15 @@
 import argparse
 import os
+import sys
 import asyncio
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from dotenv import load_dotenv
 from data_source_extractors.discord_extractor import DiscordExtractor
-from pipeline import Pipeline
+from pipeline import Pipeline, get_ddl_path
 import sqlalchemy as sa
 
 
@@ -36,7 +42,7 @@ def main():
     discord_chat_pipeline.execute_ddl(ddl_path)
     
     # Transform and Load
-    df = asyncio.run(discord_chat_extractor.parse_discord_data(raw_data))
+    df = discord_chat_extractor.parse_discord_data(raw_data) # Transform (synchronous now)
     discord_chat_pipeline.write_dataframe(
         df=df,
         table_name='discord_chats',

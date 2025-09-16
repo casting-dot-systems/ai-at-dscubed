@@ -1,10 +1,14 @@
 import os
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from pathlib import Path
 from typing import Optional
-import sys
 from data_source_extractors.notion_extractor import NotionExtractor
 from pipeline import Pipeline
 

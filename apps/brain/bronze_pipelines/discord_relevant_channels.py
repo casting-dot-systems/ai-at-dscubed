@@ -2,10 +2,16 @@
 
 import argparse
 import os
+import sys
 import asyncio
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from dotenv import load_dotenv
-from brain.bronze.src.extractor.discord_extractor import DiscordExtractor
-from brain.bronze.src.utils.pipeline import Pipeline, get_ddl_path
+from data_source_extractors.discord_extractor import DiscordExtractor
+from pipeline import Pipeline, get_ddl_path
 
 # TODO: integrate run_pipeline function from pipeline.py
 def main():
@@ -34,7 +40,7 @@ def main():
     discord_relevant_channels_pipeline.execute_ddl(ddl_path)
     
     # Transform and Load
-    df = asyncio.run(discord_relevant_channels_extractor.parse_discord_data(raw_data))
+    df = discord_relevant_channels_extractor.parse_discord_data(raw_data) # Transform (synchronous now)
     discord_relevant_channels_pipeline.write_dataframe(
         df=df,
         table_name='discord_relevant_channels',

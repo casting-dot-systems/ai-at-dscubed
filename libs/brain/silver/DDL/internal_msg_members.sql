@@ -17,8 +17,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TABLE IF NOT EXISTS silver.internal_msg_component_member (
-    member_id INT,
-    component_id BIGINT,
+    member_id INT NOT NULL,
+    component_id INT NOT NULL,
     role TEXT,
     joined_at TIMESTAMP,
     left_at TIMESTAMP,   
