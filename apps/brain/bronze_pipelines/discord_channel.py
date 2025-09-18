@@ -46,6 +46,7 @@ def main():
         if_exists='replace' # Equivalent to truncate + insert in SQL
     )
     
+    
     print("Discord channel pipeline completed successfully!")
 
 
