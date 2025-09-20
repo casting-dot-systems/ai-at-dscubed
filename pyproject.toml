@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["llmgine", "notion>=0.0.28"]
+dependencies = [
+    "discord>=2.3.2",
+    "llmgine",
+    "notion>=0.0.28",
+    "psycopg2-binary>=2.9.10",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -21,6 +26,7 @@ llmgine = { workspace = true }
 org_types = { workspace = true }
 org_tools = { workspace = true }
 brain = { workspace = true }
+brain_v2 = { workspace = true }
 
 # App packages
 darcy = { workspace = true }
@@ -29,6 +35,7 @@ ai-discord-bot = { workspace = true }
 ai-discord-bot-v2 = { workspace = true }
 meeting-recorder-bot = { workspace = true }
 scrum-checkup = { workspace = true }
+brain_v2-app = { workspace = true }
 
 [tool.hatch.metadata]
 allow-direct-references = true
