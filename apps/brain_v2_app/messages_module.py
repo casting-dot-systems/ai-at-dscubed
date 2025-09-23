@@ -1,4 +1,4 @@
-import os, json, asyncio, logging, datetime as dt
+import os, json, asyncio, logging, time, datetime as dt
 import discord
 from discord import TextChannel, Thread, VoiceChannel, ForumChannel, CategoryChannel, StageChannel
 from typing import Iterable
@@ -161,11 +161,12 @@ async def upsert_message_mentions(aconn, msg: discord.Message):
             values.append((str(msg.id), mtype, ext, member_uuid))
 
         await cur.executemany("""
-          insert into silver.message_mentions (message_id, mention_type, mentioned_external_id, member_id)
-          values (%s,%s,%s,%s)
-          on conflict (message_id, mention_type, coalesce(mentioned_external_id, '∅')) do update
-            set member_id=excluded.member_id
-        """, values)
+            insert into silver.message_mentions (message_id, mention_type, mentioned_external_id, member_id)
+            values (%s,%s,%s,%s)
+            on conflict (message_id, mention_type, mentioned_external_id) do update
+                set member_id = excluded.member_id,
+                    updated_at_ts = now()
+            """, values)
 
 def get_member_id_from_row(row):
     if row is None:
@@ -295,27 +296,38 @@ async def snapshot_component_access(aconn, guild: discord.Guild, channel):
             """, rows)
 
 async def backfill_forum_posts(aconn, forum: ForumChannel):
-    async with aconn.cursor(row_factory=dict_row) as cur:
-        # active threads (= active posts)
-        for t in forum.threads:
-            await upsert_component_row(cur, t)
-        await aconn.commit()
+    """
+    Ensure the forum (container) and all its posts (threads) exist as components.
+    Handles:
+      - active posts: forum.threads
+      - archived posts: forum.archived_threads(...) async iterator
+    """
+    # 0) Upsert the forum container itself (if you haven't already)
+    async with aconn.cursor() as cur:
+        await upsert_component_row(cur, forum)
+    await aconn.commit()
 
-    # archived posts (Discord paginates; fetch all)
-    before = None
-    while True:
-        archived = await forum.archived_threads(limit=100, before=before)  # returns (threads, has_more)
-        threads = archived.threads if hasattr(archived, "threads") else archived[0]
-        has_more = archived.has_more if hasattr(archived, "has_more") else (len(threads) == 100)
-        if not threads:
-            break
-        async with aconn.cursor(row_factory=dict_row) as cur:
-            for t in threads:
+    # 1) Active posts (already-loaded list)
+    if forum.threads:
+        async with aconn.cursor() as cur:
+            for t in forum.threads:
                 await upsert_component_row(cur, t)
         await aconn.commit()
-        if not has_more:
+
+    # 2) Archived posts — async iterator (DON'T await it; iterate it)
+    # Use 'before' to paginate; each call returns a new iterator.
+    before = None  # can be a Thread or datetime; Thread works fine here
+    while True:
+        fetched = 0
+        async for t in forum.archived_threads(limit=100, before=before):
+            # each 't' is a Thread representing a forum post
+            async with aconn.cursor() as cur:
+                await upsert_component_row(cur, t)
+            fetched += 1
+            before = t  # paginate based on the last thread seen
+        await aconn.commit()
+        if fetched == 0:
             break
-        before = threads[-1]
 
 async def backfill_history():
     logging.info("Starting backfill: identities + components + messages + mentions + ACL snapshots")
@@ -449,10 +461,21 @@ async def on_guild_channel_create(channel):
 
 @bot.event
 async def on_guild_channel_update(before, after):
-    # channel perms changed → resnapshot
     async with apool.connection() as aconn:
-        await sync_component_access_latest(aconn, channel.guild, channel)
+        # keep component metadata fresh
+        async with aconn.cursor() as cur:
+            await upsert_component_row(cur, after)
         await aconn.commit()
+
+        # resync ACL for the channel/thread/forum itself
+        await sync_component_access_latest(aconn, after.guild, after)
+        await aconn.commit()
+
+        # if a category changed, children inherit → resync all children
+        if isinstance(after, CategoryChannel):
+            for ch in after.channels:
+                await sync_component_access_latest(aconn, after.guild, ch)
+            await aconn.commit()
 
 @bot.event
 async def on_guild_channel_delete(channel):
@@ -463,6 +486,19 @@ async def on_guild_channel_delete(channel):
               delete from silver.component_members
               where system='discord' and component_id=%s
             """, (str(channel.id),))
+        await aconn.commit()
+
+@bot.event
+async def on_guild_role_update(before, after):
+    global _role_debounce
+    now = time.time()
+    if now - _role_debounce < 5:  # 5s debounce
+        return
+    _role_debounce = now
+
+    async with apool.connection() as aconn:
+        for ch in after.guild.channels:
+            await sync_component_access_latest(aconn, after.guild, ch)
         await aconn.commit()
 
 @bot.event
@@ -477,6 +513,15 @@ async def on_thread_create(thread):
         await aconn.commit()
 
 @bot.event
+async def on_thread_update(before: Thread, after: Thread):
+    async with apool.connection() as aconn:
+        async with aconn.cursor() as cur:
+            await upsert_component_row(cur, after)
+        await aconn.commit()
+        await sync_component_access_latest(aconn, after.guild, after)
+        await aconn.commit()
+
+@bot.event
 async def on_member_join(member):
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
@@ -486,6 +531,12 @@ async def on_member_join(member):
             )
         await aconn.commit()
 
+@bot.event
+async def on_member_update(before, after):
+    async with apool.connection() as aconn:
+        for ch in after.guild.channels:
+            await sync_component_access_latest(aconn, after.guild, ch)
+        await aconn.commit()
 
 @bot.event
 async def on_member_remove(member):
