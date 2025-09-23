@@ -5,10 +5,11 @@ It processes:
 - author payload
 - chat history
 - reply payload
+- reactions
 """
 
 import logging
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import discord
 
@@ -109,3 +110,39 @@ class MessageProcessor:
             return "No message id was found"
         replied_message = await message.channel.fetch_message(msg_id)
         return f"The current request is responding to a message, and that message is: {replied_message.author.display_name}: {replied_message.content}"
+
+    async def process_reactions(self, message: discord.Message) -> List[Dict[str, Any]]:
+        """Process reactions on a message."""
+        reactions_data = []
+        
+        for reaction in message.reactions:
+            reaction_info = {
+                "emoji": str(reaction.emoji),
+                "count": reaction.count,
+                "users": []
+            }
+            
+            # Fetch all users who reacted with this emoji
+            async for user in reaction.users():
+                if not user.bot:  # Skip bot reactions
+                    user_data = {
+                        "discord_id": str(user.id),
+                        "username": user.name,
+                        "display_name": getattr(user, 'display_name', user.name)
+                    }
+                    reaction_info["users"].append(user_data)
+            
+            reactions_data.append(reaction_info)
+        
+        return reactions_data
+    
+    def extract_reaction_from_payload(self, payload: discord.RawReactionActionEvent) -> Dict[str, Any]:
+        """Extract reaction data from a raw reaction event payload."""
+        return {
+            "message_id": str(payload.message_id),
+            "user_id": str(payload.user_id),
+            "channel_id": str(payload.channel_id),
+            "guild_id": str(payload.guild_id) if payload.guild_id else None,
+            "emoji": str(payload.emoji),
+            "event_type": payload.event_type
+        }

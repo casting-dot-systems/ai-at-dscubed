@@ -409,6 +409,11 @@ async def backfill_history():
                             async for msg in ch.history(limit=BACKFILL_LIMIT or 5000, oldest_first=False):
                                 await upsert_message_mentions(aconn, msg)
                             await aconn.commit()
+                            
+                            # backfill reactions for messages in this channel
+                            logging.info(f"Backfilling reactions for channel {ch.name}")
+                            reaction_count = await backfill_reactions(aconn, ch, limit=BACKFILL_LIMIT)
+                            logging.info(f"Backfilled reactions for {reaction_count} messages in {ch.name}")
                     except Exception:
                         logging.exception(f"Backfill failed for channel {ch} in guild {g.name}")
     logging.info("Backfill complete.")
@@ -640,6 +645,88 @@ async def on_raw_message_delete(payload):
                 (str(payload.message_id),),
             )
         await aconn.commit()
+
+@bot.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    """Handle real-time reaction additions."""
+    if payload.member and payload.member.bot:
+        return  # Skip bot reactions
+    
+    async with apool.connection() as aconn:
+        async with aconn.cursor(row_factory=dict_row) as cur:
+            # Ensure member exists and get member_id
+            await cur.execute(
+                "select catalog.ensure_member_for_discord(%s,%s,%s) as member_id",
+                (ORG_ID, str(payload.user_id), payload.member.name if payload.member else str(payload.user_id))
+            )
+            row = await cur.fetchone()
+            member_id = get_member_id_from_row(row)
+            
+            # Insert or update reaction
+            await cur.execute("""
+                insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
+                values (%s, %s, %s, now())
+                on conflict (message_id, reaction, member_id) do update
+                    set created_at_ts = now()
+            """, (str(payload.message_id), str(payload.emoji), member_id))
+        await aconn.commit()
+
+@bot.event
+async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
+    """Handle real-time reaction removals."""
+    async with apool.connection() as aconn:
+        async with aconn.cursor(row_factory=dict_row) as cur:
+            # Get member_id for the user
+            await cur.execute("""
+                select member_id from catalog.member_identities
+                where system='discord' and external_id=%s
+            """, (str(payload.user_id),))
+            row = await cur.fetchone()
+            member_id = get_member_id_from_row(row)
+            
+            if member_id:
+                # Delete the reaction
+                await cur.execute("""
+                    delete from silver.reactions 
+                    where message_id=%s and reaction=%s and member_id=%s
+                """, (str(payload.message_id), str(payload.emoji), member_id))
+        await aconn.commit()
+
+async def backfill_reactions(aconn, channel, limit=None):
+    """Backfill reactions for messages in a channel."""
+    count = 0
+    async for msg in channel.history(limit=limit, oldest_first=True):
+        if not msg.reactions:
+            continue
+            
+        for reaction in msg.reactions:
+            # Fetch all users who reacted with this emoji
+            async for user in reaction.users():
+                if user.bot:
+                    continue
+                
+                async with aconn.cursor(row_factory=dict_row) as cur:
+                    # Ensure member exists and get member_id
+                    await cur.execute(
+                        "select catalog.ensure_member_for_discord(%s,%s,%s) as member_id",
+                        (ORG_ID, str(user.id), user.name)
+                    )
+                    row = await cur.fetchone()
+                    member_id = get_member_id_from_row(row)
+                    
+                    # Insert reaction (using message created_at as approximate reaction time for backfill)
+                    await cur.execute("""
+                        insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
+                        values (%s, %s, %s, %s)
+                        on conflict (message_id, reaction, member_id) do nothing
+                    """, (str(msg.id), str(reaction.emoji), member_id, msg.created_at))
+                    
+        count += 1
+        if limit and count >= limit:
+            break
+    
+    await aconn.commit()
+    return count
 
 if __name__ == "__main__":
     bot.run(TOKEN)
