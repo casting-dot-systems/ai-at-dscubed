@@ -1,10 +1,9 @@
--- Components: channels/threads/etc
 create table if not exists silver.components (
   org_id text not null,
-  system text not null,                          -- 'discord'
-  component_id text not null,                    -- channel_id or thread_id
-  parent_component_id text,                      -- parent channel for thread
-  component_type text not null,                  -- 'guild_text','thread','forum','voice','category'
+  system text not null,
+  component_id text not null,
+  parent_component_id text,
+  component_type text not null,
   name text,
   is_active boolean default true,
   created_at_ts timestamptz,
@@ -12,3 +11,5 @@ create table if not exists silver.components (
   raw jsonb,
   primary key (system, component_id)
 );
+
+create index if not exists idx_components_type on silver.components(component_type);

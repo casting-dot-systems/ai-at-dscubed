@@ -1,11 +1,10 @@
--- Messages (one row per message)
 create table if not exists silver.messages (
   org_id text not null,
-  system text not null,                          -- 'discord'
+  system text not null,
   message_id text primary key,
-  component_id text not null,                    -- channel/thread where it lives
-  author_external_id text not null,              -- discord user id
-  author_member_id uuid,                         -- resolved SSOT id
+  component_id text not null,
+  author_external_id text not null,
+  author_member_id uuid,
   content text,
   has_attachments boolean default false,
   reply_to_message_id text,

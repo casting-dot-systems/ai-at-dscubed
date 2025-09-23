@@ -18,4 +18,4 @@ begin
   end if;
 
   return _member_id;
-end;
+end$$;
