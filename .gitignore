@@ -147,7 +147,6 @@ cython_debug/
 # Logs
 logs/
 # Contextr directory
-.contextr/
 playground/
 
 node_modules/
