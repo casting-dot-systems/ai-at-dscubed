@@ -1,0 +1,20 @@
+[project]
+name = "discord-framework"
+version = "0.1.0"
+description = "Discord adapter framework for AI at D3"
+requires-python = ">=3.13"
+dependencies = [
+    "discord.py>=2.4.0",
+    "python-dotenv>=1.0.1",
+    "llmgine",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+llmgine = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["discord_framework"]
