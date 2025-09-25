@@ -11,24 +11,30 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.workspace]
-members = ["apps/*", "libs/*", "llmgine"]
+members = [
+    "apps/darcy",
+    "apps/meeting_recorder_bot",
+    "libs/cast",
+    "libs/org_tools",
+    "libs/org_types",
+    "libs/brain",
+    "libs/discord",
+    "llmgine",
+]
 
 [tool.uv.sources]
 # Core dependency
 llmgine = { workspace = true }
 
-# Library packages  
+# Library packages
 org_types = { workspace = true }
 org_tools = { workspace = true }
 brain = { workspace = true }
+cast = { workspace = true }
+discord-framework = { workspace = true }
 
 # App packages
-darcy = { workspace = true }
-darcy-backend = { workspace = true }
-ai-discord-bot = { workspace = true }
-ai-discord-bot-v2 = { workspace = true }
 meeting-recorder-bot = { workspace = true }
-scrum-checkup = { workspace = true }
 
 [tool.hatch.metadata]
 allow-direct-references = true

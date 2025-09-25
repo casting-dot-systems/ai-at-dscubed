@@ -1,19 +1,24 @@
 {
     "current_profile": null,
     "files": [
-        "llmgine/tests/bus/test_approval_commands.py",
-        "llmgine/tests/bus/test_backpressure.py",
-        "llmgine/tests/bus/test_bus.py",
-        "llmgine/tests/bus/test_circuit_breaker.py",
-        "llmgine/tests/bus/test_metrics.py",
-        "llmgine/tests/bus/test_resilience.py",
-        "llmgine/tests/bus/test_scheduled_events.py",
-        "llmgine/tests/unit/bus/test_filters.py",
-        "llmgine/tests/unit/bus/test_middleware.py",
-        "llmgine/tests/unit/bus/test_registry.py"
+        "libs/cast/cast/__init__.py",
+        "libs/cast/cast/knowledge_base.py",
+        "libs/cast/cast_ops/__init__.py",
+        "libs/cast/cast_ops/_plan.py",
+        "libs/cast/cast_ops/api.py",
+        "libs/cast/cast_ops/compare.py",
+        "libs/cast/cast_ops/const.py",
+        "libs/cast/cast_ops/edit.py",
+        "libs/cast/cast_ops/indexer.py",
+        "libs/cast/cast_ops/mkd.py",
+        "libs/cast/cast_ops/search.py",
+        "libs/cast/cast_ops/types.py",
+        "libs/cast/cast_ops/utils.py",
+        "libs/cast/pyproject.toml",
+        "libs/cast/test_cast.py"
     ],
     "watched_patterns": [
-        "llmgine/tests/bus",
-        "llmgine/tests/unit/bus"
+        "/Users/nathan/dev/cast/ai-at-dscubed/libs/cast",
+        "/Users/nathan/dev/cast/ai-at-dscubed/libs/cast/cast_ops"
     ]
 }

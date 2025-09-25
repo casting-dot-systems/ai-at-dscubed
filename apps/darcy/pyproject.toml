@@ -1,22 +1,26 @@
 [project]
 name = "darcy"
 version = "0.1.0"
-description = "Notion CRUD engines and fact processing"
+description = "Darcy Discord bot application"
 requires-python = ">=3.13"
-dependencies = ["llmgine", "org_tools", "org_types", "brain"]
-
-[tool.uv.sources]
-llmgine = { workspace = true }
-org_tools = { workspace = true }
-org_types = { workspace = true }
-brain = { workspace = true }
-
-[project.scripts]
-darcy = "darcy.main:main"
+dependencies = [
+    "discord-framework",
+    "cast",
+    "llmgine",
+    "litellm>=1.44.4",
+]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv.sources]
+discord-framework = { workspace = true }
+cast = { workspace = true }
+llmgine = { workspace = true }
+
+[project.scripts]
+darcy-bot = "darcy.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["darcy"]
