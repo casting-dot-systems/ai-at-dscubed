@@ -1,5 +1,3 @@
-# searchtools.py 
-
 from __future__ import annotations
 import os
 import re
@@ -86,6 +84,27 @@ def get_schema(table_name: str) -> Dict[str, Any]:
         if not cols:
             return {"ok": False, "error": f"Table '{table_name}' not found."}
         return {"ok": True, "table": table_name, "columns": cols}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def get_metadata(table_name: Optional[str] = None) -> Dict[str, Any]:
+    """Return metadata info for all tables or a specific table."""
+    try:
+        with _connect() as conn:
+            if table_name:
+                cur = conn.execute(
+                    "SELECT table_name, description, key_columns FROM metadata WHERE table_name=?",
+                    (table_name,),
+                )
+            else:
+                cur = conn.execute(
+                    "SELECT table_name, description, key_columns FROM metadata ORDER BY table_name"
+                )
+            rows = cur.fetchall()
+            if not rows:
+                return {"ok": False, "error": "No metadata found."}
+            return {"ok": True, "metadata": _rows_to_dicts(rows)}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -202,7 +221,8 @@ class Tools:
     """
     Wrap functions so agent code can call:
       tools.get_tables(), tools.get_schema(...),
-      tools.generate_sql(...), tools.execute_sql(...), tools.llm_call(prompt).
+      tools.get_metadata(...), tools.generate_sql(...),
+      tools.execute_sql(...), tools.llm_call(prompt).
     Also provides get_available_tools() for the planner.
     """
 
@@ -212,6 +232,9 @@ class Tools:
 
     def get_schema(self, table_name: str) -> Dict[str, Any]:
         return get_schema(table_name)
+
+    def get_metadata(self, table_name: Optional[str] = None) -> Dict[str, Any]:
+        return get_metadata(table_name)
 
     def execute_sql(self, query: str, params: Optional[Tuple[Any, ...]] = None) -> Dict[str, Any]:
         return execute_sql(query, params)
@@ -227,6 +250,7 @@ class Tools:
         return [
             "get_tables",
             "get_schema",
+            "get_metadata",
             "generate_sql",
             "execute_sql",
             "ask_clarification",
