@@ -1,8 +1,6 @@
-# agent.py
 import json
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
-
 
 from searchtools import Tools
 
@@ -54,8 +52,7 @@ class SearchAgent:
             self._remember_snapshot(user_query, thought, output)
 
             # Empty/irrelevant guard (prevents infinite looping on empty results)
-            is_empty = (output is None) or (output == []) or (output == {}) \
-                       or (isinstance(output, dict) and not output.get("ok", True))
+            is_empty = (output is None) or (output == []) or (output == {})                        or (isinstance(output, dict) and not output.get("ok", True))
             if is_empty:
                 empty_count += 1
                 if empty_count >= 2:
@@ -105,7 +102,7 @@ class SearchAgent:
 
         available = self.tools.get_available_tools()
 
-        # --- Upgraded planner prompt to stop loops and guide SQL patterns (8/10 version) ---
+        # --- Upgraded planner prompt to stop loops and guide SQL patterns (with metadata support) ---
         system_prompt = (
             "You are a planner for a small SQL data agent that can only use these actions: "
             f"{', '.join(available)}.\n"
@@ -113,16 +110,17 @@ class SearchAgent:
             "Return ONLY valid JSON with keys exactly: action, args, reason.\n\n"
             "RULES:\n"
             "1) Do NOT call the same action twice in a row with the same args.\n"
-            "2) If you already listed tables (get_tables), move on to get_schema or execute_sql.\n"
-            "3) Prefer execute_sql once you know the needed tables/columns.\n"
-            "4) If the user asks for counts, use SELECT COUNT(*).\n"
-            "5) If the user asks for 'last/most recent/top N messages', use ORDER BY timestamp DESC LIMIT N.\n"
-            "6) If the user refers to a channel by name, JOIN messages m with channels c on m.channel_id=c.channel_id "
+            "2) If you already listed tables (get_tables), move on to get_schema, get_metadata, or execute_sql.\n"
+            "3) Use get_metadata when you need high-level descriptions of tables or key columns.\n"
+            "4) Prefer execute_sql once you know the needed tables/columns.\n"
+            "5) If the user asks for counts, use SELECT COUNT(*).\n"
+            "6) If the user asks for 'last/most recent/top N messages', use ORDER BY timestamp DESC LIMIT N.\n"
+            "7) If the user refers to a channel by name, JOIN messages m with channels c on m.channel_id=c.channel_id "
             "   and filter WHERE c.channel_name = '<name>'.\n"
-            "7) If the user refers to a username, JOIN messages m with users u on m.user_id=u.user_id "
+            "8) If the user refers to a username, JOIN messages m with users u on m.user_id=u.user_id "
             "   and filter WHERE u.username = '<name>'.\n"
-            "8) If you lack a column name, first call get_schema('<table>').\n"
-            "9) If you cannot progress, use ask_clarification with a very specific question.\n\n"
+            "9) If you lack a column name, first call get_schema('<table>').\n"
+            "10) If you cannot progress, use ask_clarification with a very specific question.\n\n"
             "EXAMPLES OF GOOD NEXT STEPS:\n"
             "- User: 'What are the last 5 messages?' → action: 'execute_sql', "
             "  args: {\"sql\": \"SELECT message_id, user_id, channel_id, content, timestamp "
@@ -131,7 +129,9 @@ class SearchAgent:
             "  args: {\"sql\": \"SELECT DISTINCT u.username "
             "                   FROM users u JOIN messages m ON u.user_id=m.user_id "
             "                   JOIN channels c ON m.channel_id=c.channel_id "
-            "                   WHERE c.channel_name='support';\"}\n\n"
+            "                   WHERE c.channel_name='support';\"}\n"
+            "- User: 'What does the metadata say about messages?' → action: 'get_metadata', "
+            "  args: {\"table_name\": \"messages\"}\n\n"
             "FORMAT:\n"
             "Return ONLY JSON like {\"action\":\"...\",\"args\":{...},\"reason\":\"...\"}"
         )
@@ -167,11 +167,7 @@ class SearchAgent:
             return self.fallback_action(f"LLM call failed: {str(e)}")
 
     def act(self, action_or_decision: Union[str, Dict[str, Any]], args: Optional[Dict[str, Any]] = None) -> Any:
-        """
-        Execute a chosen action. Accepts either:
-          - act('get_schema', {'table_name':'users'})
-          - act({'action':'get_schema','args':{'table_name':'users'}})
-        """
+        """Execute a chosen action."""
         if isinstance(action_or_decision, dict):
             action = action_or_decision.get("action", "ask_clarification")
             args = action_or_decision.get("args", {})  # type: ignore
@@ -186,12 +182,14 @@ class SearchAgent:
             if action == "get_schema":
                 return self.tools.get_schema(args.get("table_name"))
 
+            if action == "get_metadata":
+                return self.tools.get_metadata(args.get("table_name"))
+
             if action == "generate_sql":
                 query = args.get("query", "")
                 return self.tools.generate_sql(query)
 
             if action == "execute_sql":
-                # Accept either a direct SQL string or a natural-language query
                 if "sql" in args and args["sql"]:
                     sql_text = args["sql"]
                 elif "query" in args and args["query"]:
@@ -202,7 +200,6 @@ class SearchAgent:
                         return {"error": f"Could not generate SQL: {gen}"}
                 else:
                     return {"error": "execute_sql requires 'sql' or 'query'."}
-
                 return self.tools.execute_sql(sql_text)
 
             if action == "stop_thinking":
@@ -212,21 +209,14 @@ class SearchAgent:
                 msg = args.get("message", "Could you please clarify your request?")
                 return {"message": msg}
 
-            # Unknown action
             return {"error": f"Unknown action '{action}'"}
 
         except Exception as e:
             self.handle_error(e)
             return {"error": f"Tool execution failed: {str(e)}"}
 
-    # ---------- Sufficiency Gate ----------
-
     def check_sufficiency(self, user_query: str, output: Any) -> bool:
-        """
-        LLM-driven sufficiency check (binary Yes/No).
-        You can later extend this to return confidence/missing fields.
-        """
-        # Keep payload short to avoid excessive tokens
+        """LLM-driven sufficiency check."""
         preview = output
         try:
             preview = json.dumps(output)[:4000]
@@ -246,29 +236,21 @@ class SearchAgent:
 
         try:
             verdict = self.tools.llm_call(prompt).strip().lower()
-            return verdict.startswith("y")  # "yes"
+            return verdict.startswith("y")
         except Exception:
             return False
 
-    # ---------- Helpers ----------
-
     def validate_action(self, action: Dict[str, Any]) -> bool:
-        """Validate the action structure returned by the LLM."""
-        required = {"action", "args", "reason"}
-        return isinstance(action, dict) and required.issubset(action.keys())
+        return isinstance(action, dict) and {"action", "args", "reason"} <= set(action.keys())
 
     def fallback_action(self, error_message: str) -> Dict[str, Any]:
-        """Fallback action if reasoning fails."""
         return {
             "action": "ask_clarification",
-            "args": {
-                "message": f"I encountered an error: {error_message}. Could you please clarify your request?"
-            },
+            "args": {"message": f"I encountered an error: {error_message}. Could you please clarify your request?"},
             "reason": error_message,
         }
 
     def handle_error(self, e: Exception) -> None:
-        """Basic error handler (log to memory)."""
         self.memory.append({
             "perception": {"input": "error"},
             "decision": {"action": "error"},
@@ -277,7 +259,6 @@ class SearchAgent:
         })
 
     def _remember_snapshot(self, user_query: str, decision: Dict[str, Any], response: Any) -> None:
-        """Store a compact snapshot in memory to satisfy main.py's display."""
         self.memory.append({
             "perception": {"input": user_query},
             "decision": {"action": decision.get("action", ""), "args": decision.get("args", {})},
