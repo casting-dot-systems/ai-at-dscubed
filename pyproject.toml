@@ -9,6 +9,7 @@ dependencies = [
     "llmgine",
     "notion>=0.0.28",
     "psycopg2-binary>=2.9.10",
+    "sqlalchemy>=2.0.41",
 ]
 
 [build-system]
