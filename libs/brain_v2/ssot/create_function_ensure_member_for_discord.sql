@@ -10,8 +10,8 @@ begin
     insert into catalog.members(org_id, full_name)
     values (_org, _name) returning member_id into _member_id;
 
-    insert into catalog.member_identities(member_id, system, external_id)
-    values (_member_id, 'discord', _discord_id)
+    insert into catalog.member_identities(org_id, member_id, system, external_id)
+    values (_org, _member_id, 'discord', _discord_id)
     on conflict do nothing;
   else
     update catalog.members set updated_at=now() where member_id=_member_id;

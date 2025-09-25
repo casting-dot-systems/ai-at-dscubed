@@ -330,7 +330,7 @@ async def backfill_forum_posts(aconn, forum: ForumChannel):
             break
 
 async def backfill_history():
-    logging.info("Starting backfill: identities + components + messages + mentions + ACL snapshots")
+    logging.info("Starting backfill: identities + components + messages + mentions + ACL snapshots + reactions")
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
             for g in bot.guilds:
@@ -411,9 +411,7 @@ async def backfill_history():
                             await aconn.commit()
                             
                             # backfill reactions for messages in this channel
-                            logging.info(f"Backfilling reactions for channel {ch.name}")
                             reaction_count = await backfill_reactions(aconn, ch, limit=BACKFILL_LIMIT)
-                            logging.info(f"Backfilled reactions for {reaction_count} messages in {ch.name}")
                     except Exception:
                         logging.exception(f"Backfill failed for channel {ch} in guild {g.name}")
     logging.info("Backfill complete.")
@@ -649,31 +647,12 @@ async def on_raw_message_delete(payload):
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     """Handle real-time reaction additions."""
+    logging.info(f"Reaction add event: {payload.emoji} on message {payload.message_id} by user {payload.user_id}")
+    
     if payload.member and payload.member.bot:
+        logging.info("Skipping bot reaction")
         return  # Skip bot reactions
     
-    async with apool.connection() as aconn:
-        async with aconn.cursor(row_factory=dict_row) as cur:
-            # Ensure member exists and get member_id
-            await cur.execute(
-                "select catalog.ensure_member_for_discord(%s,%s,%s) as member_id",
-                (ORG_ID, str(payload.user_id), payload.member.name if payload.member else str(payload.user_id))
-            )
-            row = await cur.fetchone()
-            member_id = get_member_id_from_row(row)
-            
-            # Insert or update reaction
-            await cur.execute("""
-                insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
-                values (%s, %s, %s, now())
-                on conflict (message_id, reaction, member_id) do update
-                    set created_at_ts = now()
-            """, (str(payload.message_id), str(payload.emoji), member_id))
-        await aconn.commit()
-
-@bot.event
-async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
-    """Handle real-time reaction removals."""
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
             # Get member_id for the user
@@ -684,43 +663,109 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
             row = await cur.fetchone()
             member_id = get_member_id_from_row(row)
             
+            logging.info(f"Found member_id: {member_id} for user {payload.user_id}")
+            
+            if member_id:
+                # Insert or update reaction
+                await cur.execute("""
+                    insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
+                    values (%s, %s, %s, now())
+                    on conflict (message_id, reaction, member_id) do update
+                        set created_at_ts = now()
+                """, (str(payload.message_id), str(payload.emoji), member_id))
+                
+                logging.info(f"Inserted reaction: {payload.emoji} on message {payload.message_id} by member {member_id}")
+            else:
+                logging.warning(f"No member_id found for user {payload.user_id} when adding reaction")
+        await aconn.commit()
+
+@bot.event
+async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
+    """Handle real-time reaction removals."""
+    logging.info(f"Reaction remove event: {payload.emoji} on message {payload.message_id} by user {payload.user_id}")
+    
+    async with apool.connection() as aconn:
+        async with aconn.cursor(row_factory=dict_row) as cur:
+            # Get member_id for the user
+            await cur.execute("""
+                select member_id from catalog.member_identities
+                where system='discord' and external_id=%s
+            """, (str(payload.user_id),))
+            row = await cur.fetchone()
+            member_id = get_member_id_from_row(row)
+            
+            logging.info(f"Found member_id: {member_id} for user {payload.user_id}")
+            
             if member_id:
                 # Delete the reaction
                 await cur.execute("""
                     delete from silver.reactions 
                     where message_id=%s and reaction=%s and member_id=%s
                 """, (str(payload.message_id), str(payload.emoji), member_id))
+                logging.info(f"Deleted reaction: {payload.emoji} on message {payload.message_id} by member {member_id}")
+            else:
+                logging.warning(f"No member_id found for user {payload.user_id} when removing reaction")
         await aconn.commit()
 
+
 async def backfill_reactions(aconn, channel, limit=None):
-    """Backfill reactions for messages in a channel."""
+    """Sync reactions for messages in a channel - add missing, remove stale."""
     count = 0
-    async for msg in channel.history(limit=limit, oldest_first=True):
-        if not msg.reactions:
-            continue
+    # Convert limit=0 to None for Discord.py (0 means no limit in our API, but Discord.py treats it as 0 messages)
+    history_limit = None if limit == 0 else limit
+    
+    async for msg in channel.history(limit=history_limit, oldest_first=True):
+        async with aconn.cursor(row_factory=dict_row) as cur:
+            # Get current reactions from Discord
+            discord_reactions = set()  # Set of (reaction_str, member_id) tuples
             
-        for reaction in msg.reactions:
-            # Fetch all users who reacted with this emoji
-            async for user in reaction.users():
-                if user.bot:
-                    continue
-                
-                async with aconn.cursor(row_factory=dict_row) as cur:
-                    # Ensure member exists and get member_id
-                    await cur.execute(
-                        "select catalog.ensure_member_for_discord(%s,%s,%s) as member_id",
-                        (ORG_ID, str(user.id), user.name)
-                    )
-                    row = await cur.fetchone()
-                    member_id = get_member_id_from_row(row)
-                    
-                    # Insert reaction (using message created_at as approximate reaction time for backfill)
-                    await cur.execute("""
-                        insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
-                        values (%s, %s, %s, %s)
-                        on conflict (message_id, reaction, member_id) do nothing
-                    """, (str(msg.id), str(reaction.emoji), member_id, msg.created_at))
-                    
+            if msg.reactions:
+                for reaction in msg.reactions:
+                    # Fetch all users who reacted with this emoji
+                    async for user in reaction.users():
+                        if user.bot:
+                            continue
+                        
+                        # Ensure member exists and get member_id
+                        await cur.execute(
+                            "select catalog.ensure_member_for_discord(%s,%s,%s) as member_id",
+                            (ORG_ID, str(user.id), user.name)
+                        )
+                        row = await cur.fetchone()
+                        member_id = get_member_id_from_row(row)
+                        
+                        if member_id:
+                            discord_reactions.add((str(reaction.emoji), member_id))
+            
+            # Get existing reactions from database for this message
+            await cur.execute("""
+                select reaction, member_id from silver.reactions 
+                where message_id = %s
+            """, (str(msg.id),))
+            db_reactions = set()
+            for row in await cur.fetchall():
+                db_reactions.add((row['reaction'], row['member_id']))
+            
+            # Find reactions to add (in Discord but not in DB)
+            reactions_to_add = discord_reactions - db_reactions
+            # Find reactions to remove (in DB but not in Discord)  
+            reactions_to_remove = db_reactions - discord_reactions
+            
+            # Add missing reactions
+            for reaction_str, member_id in reactions_to_add:
+                await cur.execute("""
+                    insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
+                    values (%s, %s, %s, %s)
+                    on conflict (message_id, reaction, member_id) do nothing
+                """, (str(msg.id), reaction_str, member_id, msg.created_at))
+            
+            # Remove stale reactions
+            for reaction_str, member_id in reactions_to_remove:
+                await cur.execute("""
+                    delete from silver.reactions 
+                    where message_id = %s and reaction = %s and member_id = %s
+                """, (str(msg.id), reaction_str, member_id))
+            
         count += 1
         if limit and count >= limit:
             break
