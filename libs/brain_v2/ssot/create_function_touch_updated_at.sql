@@ -1,12 +1,11 @@
-create or replace function catalog.touch_updated_at()
-returns trigger language plpgsql as $$
+CREATE OR REPLACE FUNCTION CATALOG.TOUCH_UPDATED_AT () RETURNS TRIGGER LANGUAGE PLPGSQL AS $$
 begin
   new.updated_at := now();
   return new;
 end$$;
 
-drop trigger if exists trg_members_touch on catalog.members;
-create trigger trg_members_touch
-before update on catalog.members
-for each row
-execute function catalog.touch_updated_at();
+DROP TRIGGER IF EXISTS TRG_MEMBERS_TOUCH ON CATALOG.MEMBERS;
+
+CREATE TRIGGER TRG_MEMBERS_TOUCH BEFORE
+UPDATE ON CATALOG.MEMBERS FOR EACH ROW
+EXECUTE FUNCTION CATALOG.TOUCH_UPDATED_AT ();

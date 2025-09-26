@@ -1,14 +1,15 @@
-create table if not exists silver.message_mentions (
-    message_id            text not null,
-    mention_type          text not null,   -- 'user'|'role'|'channel'|'everyone'|'here'
-    mentioned_external_id text,            -- NULL for @everyone/@here
-    member_id             uuid,            -- SSOT member if resolvable
-    created_at_ts         timestamptz default now(),
-    updated_at_ts         timestamptz default now()
+DROP TABLE IF EXISTS SILVER.MESSAGE_MENTIONS CASCADE;
+
+CREATE TABLE IF NOT EXISTS SILVER.MESSAGE_MENTIONS (
+    MESSAGE_ID TEXT NOT NULL,
+    MENTION_TYPE TEXT NOT NULL, -- 'user'|'role'|'channel'|'everyone'|'here'
+    MENTIONED_EXTERNAL_ID TEXT, -- NULL for @everyone/@here
+    MEMBER_ID UUID, -- SSOT member if resolvable
+    CREATED_AT_TS TIMESTAMPTZ DEFAULT NOW(),
+    UPDATED_AT_TS TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Create the exact unique index ON THE SAME THREE COLUMNS
-create unique index if not exists uq_message_mentions
-    on silver.message_mentions (message_id, mention_type, mentioned_external_id) nulls not distinct;
+CREATE UNIQUE INDEX IF NOT EXISTS UQ_MESSAGE_MENTIONS ON SILVER.MESSAGE_MENTIONS (MESSAGE_ID, MENTION_TYPE, MENTIONED_EXTERNAL_ID) NULLS NOT DISTINCT;
 
-create index if not exists idx_message_mentions_member on silver.message_mentions (member_id);
+CREATE INDEX IF NOT EXISTS IDX_MESSAGE_MENTIONS_MEMBER ON SILVER.MESSAGE_MENTIONS (MEMBER_ID);

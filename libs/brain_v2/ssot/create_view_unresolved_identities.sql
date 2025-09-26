@@ -1,12 +1,15 @@
-create or replace view catalog.v_unresolved_identities as
-select
-    member_identity_id,
-    org_id,
-    system,
-    external_id,
-    external_username,
-    created_at,
-    updated_at
-from catalog.member_identities
-where member_id is null
-order by updated_at desc;
+CREATE OR REPLACE VIEW CATALOG.V_UNRESOLVED_IDENTITIES AS
+SELECT
+    MEMBER_IDENTITY_ID,
+    ORG_ID,
+    SYSTEM,
+    EXTERNAL_ID,
+    EXTERNAL_USERNAME,
+    CREATED_AT,
+    UPDATED_AT
+FROM
+    CATALOG.MEMBER_IDENTITIES
+WHERE
+    MEMBER_ID IS NULL
+ORDER BY
+    UPDATED_AT DESC;

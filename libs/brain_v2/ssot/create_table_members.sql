@@ -1,21 +1,26 @@
-create table catalog.members (
-    member_id      uuid primary key default gen_random_uuid(),
-    org_id         text not null,
-    full_name      text not null,
-    preferred_name text,
-    primary_email  text,
-    role           text,
-    team           text,
-    status         text not null default 'active'
-    ,created_at    timestamptz not null default now()
-    ,updated_at    timestamptz not null default now()
+DROP TABLE IF EXISTS CATALOG.MEMBERS CASCADE;
+
+CREATE TABLE IF NOT EXISTS CATALOG.MEMBERS (
+    MEMBER_ID UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID (),
+    ORG_ID TEXT NOT NULL,
+    FULL_NAME TEXT NOT NULL,
+    PREFERRED_NAME TEXT,
+    PRIMARY_EMAIL TEXT,
+    ROLE TEXT,
+    TEAM TEXT,
+    STATUS TEXT NOT NULL DEFAULT 'active',
+    CREATED_AT TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UPDATED_AT TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-create unique index uq_members_org_email
-    on catalog.members (org_id, primary_email)
-    where primary_email is not null;
+CREATE UNIQUE INDEX IF NOT EXISTS UQ_MEMBERS_ORG_EMAIL ON CATALOG.MEMBERS (ORG_ID, PRIMARY_EMAIL)
+WHERE
+    PRIMARY_EMAIL IS NOT NULL;
 
-create index idx_members_org            on catalog.members (org_id);
-create index idx_members_org_status     on catalog.members (org_id, status);
-create index idx_members_org_team       on catalog.members (org_id, team);
-create index idx_members_org_fullname   on catalog.members (org_id, full_name text_pattern_ops);
+CREATE INDEX IF NOT EXISTS IDX_MEMBERS_ORG ON CATALOG.MEMBERS (ORG_ID);
+
+CREATE INDEX IF NOT EXISTS IDX_MEMBERS_ORG_STATUS ON CATALOG.MEMBERS (ORG_ID, STATUS);
+
+CREATE INDEX IF NOT EXISTS IDX_MEMBERS_ORG_TEAM ON CATALOG.MEMBERS (ORG_ID, TEAM);
+
+CREATE INDEX IF NOT EXISTS IDX_MEMBERS_ORG_FULLNAME ON CATALOG.MEMBERS (ORG_ID, FULL_NAME TEXT_PATTERN_OPS);

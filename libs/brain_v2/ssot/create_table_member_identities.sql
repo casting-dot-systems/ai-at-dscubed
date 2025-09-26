@@ -1,16 +1,16 @@
-create table catalog.member_identities (
-    member_identity_id uuid primary key default gen_random_uuid(),
-    org_id text not null,
-    member_id uuid references catalog.members(member_id) on delete set null,
-    system text not null,
-    external_id text not null,
-    external_username text,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
+DROP TABLE IF EXISTS CATALOG.MEMBER_IDENTITIES CASCADE;
+
+CREATE TABLE IF NOT EXISTS CATALOG.MEMBER_IDENTITIES (
+    MEMBER_IDENTITY_ID UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID (),
+    ORG_ID TEXT NOT NULL,
+    MEMBER_ID UUID REFERENCES CATALOG.MEMBERS (MEMBER_ID) ON DELETE SET NULL,
+    SYSTEM TEXT NOT NULL,
+    EXTERNAL_ID TEXT NOT NULL,
+    EXTERNAL_USERNAME TEXT,
+    CREATED_AT TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UPDATED_AT TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-create unique index uq_member_identities_system_external
-    on catalog.member_identities (system, external_id);
+CREATE UNIQUE INDEX IF NOT EXISTS UQ_MEMBER_IDENTITIES_SYSTEM_EXTERNAL ON CATALOG.MEMBER_IDENTITIES (SYSTEM, EXTERNAL_ID);
 
-create index idx_member_identities_system_username
-    on catalog.member_identities (system, external_username text_pattern_ops);
+CREATE INDEX IF NOT EXISTS IDX_MEMBER_IDENTITIES_SYSTEM_USERNAME ON CATALOG.MEMBER_IDENTITIES (SYSTEM, EXTERNAL_USERNAME TEXT_PATTERN_OPS);

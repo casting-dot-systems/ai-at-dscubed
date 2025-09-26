@@ -22,7 +22,7 @@ def find_member(conn, full_name: str):
           select member_id, full_name from catalog.members
           where org_id=%s and full_name ilike %s
           order by updated_at desc
-        """, (ORG_ID, full_name))
+        """, (ORG_ID, f"%{full_name}%"))  # <<< add wildcards
         return cur.fetchall()
 
 def link_identity(conn, member_id, system, external_id):
@@ -34,6 +34,20 @@ def link_identity(conn, member_id, system, external_id):
         """, (member_id, system, external_id))
     conn.commit()
 
+def search_by_username(conn, system: str, username: str):
+    with conn.cursor(row_factory=dict_row) as cur:
+        cur.execute("""
+          select mi.system, mi.external_id, mi.external_username,
+                 m.member_id, m.full_name
+          from catalog.member_identities mi
+          left join catalog.members m on m.member_id = mi.member_id
+          where mi.system=%s and mi.external_username ilike %s
+          order by m.full_name nulls last, mi.external_username
+          limit 20
+        """, (system, f"%{username}%"))
+        return cur.fetchall()
+
+
 def main():
     print("Identity Resolver — AI@DSCubed")
     print(HELP)
@@ -41,7 +55,7 @@ def main():
         while True:
             with conn.cursor(row_factory=dict_row) as cur:
                 cur.execute("""
-                  select system, external_id
+                  select system, external_id, external_username
                   from catalog.member_identities
                   where member_id is null
                   order by system, external_id
@@ -54,14 +68,27 @@ def main():
 
             system = row["system"]
             ext_id = row["external_id"]
-            prompt = f'null member for identity: "{ext_id}", system: "{system}". Enter Full Name to assign member_id: '
+            ext_username = row["external_username"]
+            prompt = (
+                f'null member for identity: "{ext_id}"'
+                f'{f" (username: {ext_username})" if ext_username else ""}, system: "{system}". '  # <<< fix var name
+                f'Enter Full Name to assign member_id (or type /u <username> to search, ">>" to skip, ":q" to quit): '
+            )
             full_name = input(prompt).strip()
             if full_name == ":q":
                 print("Exiting.")
-                break
+                return
             if full_name == ">>":
                 continue
-            if not full_name:
+            if full_name.startswith("/u "):
+                q = full_name[3:].strip()
+                hits = search_by_username(conn, system, q)
+                if not hits:
+                    print("  (no matches by username)")
+                else:
+                    for h in hits:
+                        owner = h["full_name"] or "UNASSIGNED"
+                        print(f'  - {h["external_username"]} [{h["external_id"]}] → {owner}')
                 continue
 
             matches = find_member(conn, full_name)

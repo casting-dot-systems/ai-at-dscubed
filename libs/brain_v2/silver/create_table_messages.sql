@@ -1,15 +1,21 @@
-create table if not exists silver.messages (
-  org_id text not null,
-  system text not null,
-  message_id text primary key,
-  component_id text not null,
-  author_external_id text not null,
-  author_member_id uuid,
-  content text,
-  has_attachments boolean default false,
-  reply_to_message_id text,
-  created_at_ts timestamptz,
-  edited_at_ts timestamptz,
-  deleted_at_ts timestamptz,
-  raw jsonb
+DROP TABLE IF EXISTS SILVER.MESSAGES CASCADE;
+
+CREATE TABLE IF NOT EXISTS SILVER.MESSAGES (
+    ORG_ID TEXT NOT NULL,
+    SYSTEM TEXT NOT NULL,
+    MESSAGE_ID TEXT PRIMARY KEY,
+    COMPONENT_ID TEXT NOT NULL,
+    AUTHOR_EXTERNAL_ID TEXT NOT NULL,
+    AUTHOR_MEMBER_ID UUID,
+    CONTENT TEXT,
+    HAS_ATTACHMENTS BOOLEAN DEFAULT FALSE,
+    REPLY_TO_MESSAGE_ID TEXT,
+    CREATED_AT_TS TIMESTAMPTZ,
+    EDITED_AT_TS TIMESTAMPTZ,
+    DELETED_AT_TS TIMESTAMPTZ,
+    RAW JSONB
 );
+
+CREATE INDEX IF NOT EXISTS IDX_MESSAGES_COMPONENT_TIME ON SILVER.MESSAGES (COMPONENT_ID, CREATED_AT_TS DESC);
+
+CREATE INDEX IF NOT EXISTS IDX_MESSAGES_AUTHOR_TIME ON SILVER.MESSAGES (AUTHOR_EXTERNAL_ID, CREATED_AT_TS DESC);

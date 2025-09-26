@@ -1,21 +1,23 @@
-create or replace function catalog.ensure_member_for_discord(_org text, _discord_id text, _name text)
-returns uuid language plpgsql as $$
-declare _member_id uuid;
+CREATE OR REPLACE FUNCTION CATALOG.ENSURE_MEMBER_FOR_DISCORD (
+    P_ORG_ID TEXT,
+    P_EXTERNAL_ID TEXT,
+    P_EXTERNAL_USERNAME TEXT
+) RETURNS UUID LANGUAGE PLPGSQL AS $$
+declare
+    v_member_id uuid;
 begin
-  select mi.member_id into _member_id
-  from catalog.member_identities mi
-  where mi.system='discord' and mi.external_id=_discord_id;
+    -- First, ensure identity row exists (if not present)
+    insert into catalog.member_identities (org_id, system, external_id, external_username)
+    values (p_org_id, 'discord', p_external_id, p_external_username)
+    on conflict (system, external_id) do update
+        set external_username = excluded.external_username,
+            updated_at        = now()
+    returning member_id into v_member_id;
 
-  if _member_id is null then
-    insert into catalog.members(org_id, full_name)
-    values (_org, _name) returning member_id into _member_id;
+    -- At this point:
+    -- - If identity was already linked, v_member_id will be non-null
+    -- - If identity is new or unlinked, v_member_id will be null
 
-    insert into catalog.member_identities(member_id, system, external_id)
-    values (_member_id, 'discord', _discord_id)
-    on conflict do nothing;
-  else
-    update catalog.members set updated_at=now() where member_id=_member_id;
-  end if;
-
-  return _member_id;
-end$$;
+    return v_member_id;
+end;
+$$;

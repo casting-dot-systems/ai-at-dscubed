@@ -1,4 +1,7 @@
-create schema if not exists catalog;
-create schema if not exists silver;
-create schema if not exists bronze;
-create schema if not exists gold;
+CREATE SCHEMA IF NOT EXISTS CATALOG;
+
+CREATE SCHEMA IF NOT EXISTS SILVER;
+
+CREATE SCHEMA IF NOT EXISTS BRONZE;
+
+CREATE SCHEMA IF NOT EXISTS GOLD;

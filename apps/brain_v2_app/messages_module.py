@@ -1,50 +1,91 @@
-import os, json, asyncio, logging, time, datetime as dt
+import os, json, asyncio, time, datetime as dt, logging
+from contextlib import asynccontextmanager
+from typing import Optional, Iterable, List, Tuple
+
 import discord
-from discord import TextChannel, Thread, VoiceChannel, ForumChannel, CategoryChannel, StageChannel
-from typing import Iterable
+from discord import (
+    TextChannel, Thread, VoiceChannel, ForumChannel, CategoryChannel, StageChannel
+)
+from psycopg_pool import AsyncConnectionPool
 from psycopg.rows import dict_row
 from dotenv import load_dotenv
-from psycopg_pool import AsyncConnectionPool
-import logging
-from contextlib import asynccontextmanager
 
+# --------------------------
+# Config & Globals
+# --------------------------
 load_dotenv()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
-logging.basicConfig(level=logging.INFO)
+TOKEN    = os.getenv("DISCORD_WEBHOOK_BOT_KEY")
+PG_DSN   = os.getenv("DATABASE_URL")
+ORG_ID   = os.getenv("ORG_ID", "AI@DSCubed")
+GUILD_ID = os.getenv("AI_AT_DSCUBED_GUILD_ID")  # single guild expected (can extend to list if needed)
 
-TOKEN   = os.getenv("DISCORD_WEBHOOK_BOT_KEY")
-PG_DSN  = os.getenv("DATABASE_URL")
-ORG_ID  = os.getenv("ORG_ID", "AI@DSCubed")
-GUILDS  = [os.getenv("AI_AT_DSCUBED_GUILD_ID")]
-BACKFILL = os.getenv("DISCORD_BACKFILL", "false").lower() == "true"
-BACKFILL_LIMIT = int(os.getenv("DISCORD_BACKFILL_LIMIT", "0") or 0)  # 0 = no limit
+# Backfill toggles
+BACKFILL        = (os.getenv("DISCORD_BACKFILL", "false").lower() == "true")
+BACKFILL_LIMIT  = int(os.getenv("DISCORD_BACKFILL_LIMIT", "0") or 0)  # messages per component; 0 = unlimited
+
+# Guard envs early
+for _k in ("DISCORD_WEBHOOK_BOT_KEY", "DATABASE_URL", "AI_AT_DSCUBED_GUILD_ID"):
+    if not os.getenv(_k):
+        raise RuntimeError(f"Missing env var: {_k}")
+
+# Discord intents
+intents = discord.Intents.default()
+intents.guilds = True
+intents.members = True           # needed for ACL resolution
+intents.messages = True
+intents.message_content = True   # needed to read content, mentions, @here detection
+
+bot = discord.Client(intents=intents)
+apool: Optional[AsyncConnectionPool] = None
+_role_debounce = 0.0  # debounce for role updates
 
 CHANNEL_TYPES = (TextChannel, Thread, VoiceChannel, ForumChannel, CategoryChannel, StageChannel)
 
-# Intents: members, messages, guilds, message content (if allowed)
-intents = discord.Intents.default()
-intents.guilds = True
-intents.members = True
-intents.messages = True
-intents.message_content = True
+# --------------------------
+# Utilities
+# --------------------------
 
+def utcnow() -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc)
 
-bot = discord.Client(intents=intents)
+def jsonb(obj) -> Optional[dict]:
+    """Convert discord objects to a minimally serializable dict"""
+    try:
+        return json.loads(json.dumps(obj, default=lambda x: getattr(x, "id", str(x))))
+    except Exception:
+        return None
 
-async def log_and_raise(sql: str, params, err: Exception):
-    logging.error("SQL failed: %s\nparams=%r\nerror=%r", sql, params, err)
-    raise
+def get_member_id_from_row(row):
+    if row is None:
+        return None
+    if isinstance(row, dict):
+        return row.get("member_id")
+    try:
+        return row[0]
+    except Exception:
+        return None
+
+async def get_linked_member_id(cur, external_id: str):
+    await cur.execute("""
+        select member_id
+        from catalog.member_identities
+        where system='discord' and external_id=%s
+        limit 1
+    """, (external_id,))
+    return get_member_id_from_row(await cur.fetchone())
 
 @asynccontextmanager
 async def tx(aconn):
+    """Explicit transaction scope; connection auto-rolls back on exception."""
     try:
-        async with aconn.transaction():  # psycopg3 async tx scope
+        async with aconn.transaction():
             yield
-    except Exception as e:
-        # connection is auto-rolled back by the tx CM; just re-raise
+    except Exception:
         raise
 
-def classify_component(obj) -> tuple[str, str | None]:
+def classify_component(obj) -> Tuple[str, Optional[str]]:
     """
     Returns (component_type, parent_component_id)
     Types: 'guild_text','thread','forum','forum_post','voice','category','stage'
@@ -52,7 +93,6 @@ def classify_component(obj) -> tuple[str, str | None]:
     if isinstance(obj, ForumChannel):
         return ("forum", None)
     if isinstance(obj, Thread):
-        # forum posts are threads whose parent is a ForumChannel
         parent = obj.parent.id if obj.parent else None
         if isinstance(obj.parent, ForumChannel):
             return ("forum_post", str(parent))
@@ -65,25 +105,17 @@ def classify_component(obj) -> tuple[str, str | None]:
         return ("stage", str(obj.category_id) if obj.category_id else None)
     if isinstance(obj, CategoryChannel):
         return ("category", None)
-    # fallback
     return (type(obj).__name__.lower(), None)
-
-def utcnow():
-    return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc)
-
-def jsonb(o):
-    try:
-        return json.loads(json.dumps(o, default=lambda x: getattr(x, "id", str(x))))
-    except Exception:
-        return None
 
 async def upsert_component_row(cur, obj, name_hint=None, raw=None):
     ctype, parent_id = classify_component(obj)
     name = getattr(obj, "name", name_hint or str(obj.id))
     await cur.execute("""
-      insert into silver.components (org_id, system, component_id, component_type, name, parent_component_id, created_at_ts, updated_at_ts, raw)
-      values (%s,'discord',%s,%s,%s,%s, now(), now(), %s)
-      on conflict (system, component_id) do update set
+      insert into silver.components
+        (org_id, system, component_id, component_type, name, parent_component_id, created_at_ts, updated_at_ts, raw)
+      values
+        (%s,'discord',%s,%s,%s,%s, now(), now(), %s)
+      on conflict (org_id, system, component_id) do update set
         component_type=excluded.component_type,
         name=excluded.name,
         parent_component_id=excluded.parent_component_id,
@@ -91,170 +123,123 @@ async def upsert_component_row(cur, obj, name_hint=None, raw=None):
         raw=excluded.raw
     """, (ORG_ID, str(obj.id), ctype, name, str(parent_id) if parent_id else None, json.dumps(raw) if raw else None))
 
-def ensure_member(conn, discord_user):
-    # calls the DB helper to ensure SSOT member + identity link
-    with conn.cursor() as cur:
-        cur.execute("select catalog.ensure_member_for_discord(%s,%s,%s)",
-                    (ORG_ID, str(discord_user.id), discord_user.name))
-        row = cur.fetchone()
-        return get_member_id_from_row(row)
-
-def upsert_message(conn, message, deleted_at=None, edited_at=None):
-    author_id = str(message.author.id)
-    member_id = ensure_member(conn, message.author)
-
-    reply_to = str(message.reference.message_id) if message.reference and message.reference.message_id else None
-    has_att = bool(message.attachments)
-    created_at = message.created_at if message.created_at.tzinfo else message.created_at.replace(tzinfo=dt.timezone.utc)
-
-    conn.execute("""
-      insert into silver.messages (org_id, system, message_id, component_id, author_external_id, author_member_id,
-                                   content, has_attachments, reply_to_message_id, created_at_ts, edited_at_ts, deleted_at_ts, raw)
-      values (%s,'discord',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-      on conflict (message_id) do update
-        set content=excluded.content,
-            has_attachments=excluded.has_attachments,
-            reply_to_message_id=excluded.reply_to_message_id,
-            edited_at_ts=coalesce(excluded.edited_at_ts, silver.messages.edited_at_ts),
-            deleted_at_ts=coalesce(excluded.deleted_at_ts, silver.messages.deleted_at_ts),
-            raw=excluded.raw
-    """, (ORG_ID, str(message.id), str(message.channel.id), author_id, member_id,
-          message.content, has_att, reply_to, created_at, edited_at, deleted_at, jsonb(message.to_dict())))
+# --------------------------
+# Mentions
+# --------------------------
 
 async def upsert_message_mentions(aconn, msg: discord.Message):
-    # Gather mentions
+    """
+    Populate silver.message_mentions using a unique index with NULLS NOT DISTINCT
+    on (message_id, mention_type, mentioned_external_id).
+    """
     rows = []
-    # User mentions
-    for u in msg.mentions:  # discord.Member/User objects
+    for u in msg.mentions:
         rows.append(("user", str(u.id)))
-    # Role mentions
     for r in getattr(msg, "role_mentions", []):
         rows.append(("role", str(r.id)))
-    # Channel mentions (e.g., #general)
     for ch in getattr(msg, "channel_mentions", []):
         rows.append(("channel", str(ch.id)))
-    # Everyone/here
     if getattr(msg, "mention_everyone", False):
         rows.append(("everyone", None))
-        # discord doesn't separately flag @here, but you can detect text if needed:
         if "@here" in (msg.content or ""):
             rows.append(("here", None))
 
-    async with aconn.cursor(row_factory=dict_row) as cur:
-        # wipe existing mentions for idempotency
-        await cur.execute("delete from silver.message_mentions where message_id=%s", (str(msg.id),))
-        if not rows:
-            return
+    async with apool.connection() as aconn:
+        async with aconn.cursor(row_factory=dict_row) as cur:
+            # idempotent: wipe then insert
+            await cur.execute("delete from silver.message_mentions where message_id=%s", (str(msg.id),))
+            if not rows:
+                return
 
-        # Resolve member_ids for user mentions
-        values = []
-        for mtype, ext in rows:
-            member_uuid = None
-            if mtype == "user" and ext:
-                await cur.execute("""
-                  select mi.member_id
-                  from catalog.member_identities mi
-                  where mi.system='discord' and mi.external_id=%s
-                """, (ext,))
-                r = await cur.fetchone()
-                member_uuid = get_member_id_from_row(r)
-            values.append((str(msg.id), mtype, ext, member_uuid))
+            values = []
+            for mtype, ext in rows:
+                member_uuid = None
+                if mtype == "user" and ext:
+                    await cur.execute("""
+                      select mi.member_id
+                      from catalog.member_identities mi
+                      where mi.system='discord' and mi.external_id=%s
+                      limit 1
+                    """, (ext,))
+                    r = await cur.fetchone()
+                    member_uuid = get_member_id_from_row(r)
+                values.append((str(msg.id), mtype, ext, member_uuid))
 
-        await cur.executemany("""
-            insert into silver.message_mentions (message_id, mention_type, mentioned_external_id, member_id)
-            values (%s,%s,%s,%s)
-            on conflict (message_id, mention_type, mentioned_external_id) do update
+            await cur.executemany("""
+              insert into silver.message_mentions (message_id, mention_type, mentioned_external_id, member_id)
+              values (%s,%s,%s,%s)
+              on conflict (message_id, mention_type, mentioned_external_id) do update
                 set member_id = excluded.member_id,
                     updated_at_ts = now()
             """, values)
 
-def get_member_id_from_row(row):
-    if row is None:
-        return None
-    # psycopg row can be a dict (dict_row) or a tuple depending on row_factory
-    if isinstance(row, dict):
-        return row.get("member_id")
-    # fallback: positional
-    try:
-        return row[0]
-    except Exception:
-        return None
+# --------------------------
+# ACL (latest only)
+# --------------------------
 
-async def resolve_member_uuid(cur, discord_user_id: str):
-    await cur.execute(
-        """
-        select member_id
-        from catalog.member_identities
-        where system = 'discord' and external_id = %s
-        limit 1
-        """,
-        (discord_user_id,),
-    )
-    row = await cur.fetchone()
-    return get_member_id_from_row(row)
-
-async def current_viewers(guild: discord.Guild, channel) -> list[discord.Member]:
-    # Requires Intents.members and member cache
+async def current_viewers(guild: discord.Guild, channel) -> List[discord.Member]:
     viewers = []
     for m in guild.members:
         try:
             if channel.permissions_for(m).view_channel:
                 viewers.append(m)
         except Exception:
-            # Some channel types / partial perms can throw, ignore gracefully
             pass
     return viewers
 
+async def resolve_member_uuid(cur, discord_user_id: str):
+    await cur.execute("""
+      select member_id
+      from catalog.member_identities
+      where system='discord' and external_id=%s
+      limit 1
+    """, (discord_user_id,))
+    row = await cur.fetchone()
+    return get_member_id_from_row(row)
+
 async def sync_component_access_latest(aconn, guild: discord.Guild, channel):
-    """
-    Bring silver.component_members to the latest truth for this component:
-      - UPSERT all current viewers with can_view=True
-      - DELETE rows for external_ids no longer present
-    """
+    """Upsert current viewers to silver.component_members; remove stale rows."""
     if isinstance(channel, CategoryChannel):
-        # Optional: skip categories if you only care about message-bearing components
         return
 
     async with aconn.cursor(row_factory=dict_row) as cur:
-        # Compute current set
         viewers = await current_viewers(guild, channel)
         current = {str(m.id): m for m in viewers}
 
-        # Ensure identities exist (no auto member)
+        # ensure identities exist / refresh username
         for m in viewers:
             await cur.execute(
                 "select catalog.ensure_identity_for_discord(%s,%s,%s)",
-                (ORG_ID, str(m.id), m.display_name or m.name),
+                (ORG_ID, str(m.id), m.name),
             )
 
-        # Load existing rows for this component
+        # Load existing external_ids for this component
         await cur.execute("""
           select external_id
           from silver.component_members
           where system='discord' and component_id=%s
         """, (str(channel.id),))
-        existing = {get_member_id_from_row(row) for row in await cur.fetchall()}
+        existing = { (row["external_id"] if isinstance(row, dict) else row[0])
+                     for row in await cur.fetchall() }
 
-        # Upserts for new/changed
+        # Upserts
         upserts = []
         for ext_id, member in current.items():
             member_uuid = await resolve_member_uuid(cur, ext_id)
-            upserts.append((
-                'discord', str(channel.id), ext_id, member_uuid, True, ORG_ID
-            ))
+            upserts.append(('discord', str(channel.id), ext_id, member_uuid, True, ORG_ID))
 
         if upserts:
             await cur.executemany("""
               insert into silver.component_members (system, component_id, external_id, member_id, can_view, org_id, updated_at_ts)
               values (%s,%s,%s,%s,%s,%s, now())
-              on conflict (system, component_id, external_id) do update
-                set member_id = excluded.member_id,
-                    can_view  = excluded.can_view,
-                    org_id    = excluded.org_id,
+              on conflict (org_id, system, component_id, external_id) do update
+                set member_id     = excluded.member_id,
+                    can_view      = excluded.can_view,
+                    org_id        = excluded.org_id,
                     updated_at_ts = now()
             """, upserts)
 
-        # Deletes for stale
+        # Deletes
         stale_ext_ids = existing - set(current.keys())
         if stale_ext_ids:
             await cur.executemany("""
@@ -262,163 +247,148 @@ async def sync_component_access_latest(aconn, guild: discord.Guild, channel):
               where system='discord' and component_id=%s and external_id=%s
             """, [(str(channel.id), ext) for ext in stale_ext_ids])
 
-async def snapshot_component_access(aconn, guild: discord.Guild, channel):
-    # Skip categories if you want only message-bearing components
-    if isinstance(channel, CategoryChannel):
-        return
-    # We need guild.members; requires Intents.members and member cache
-    viewers: list[discord.Member] = []
-    for m in guild.members:
-        perms = channel.permissions_for(m)
-        if perms.view_channel:
-            viewers.append(m)
+# --------------------------
+# Forum backfill helpers
+# --------------------------
 
-    async with aconn.cursor(row_factory=dict_row) as cur:
-        # Insert one snapshot row per viewer (keep historical snapshots)
-        rows = []
-        for m in viewers:
-            # ensure identity row exists but don't link member_id
-            await cur.execute("select catalog.ensure_identity_for_discord(%s,%s,%s)",
-                              (ORG_ID, str(m.id), m.display_name or m.name))
-            # resolve to member_id if already linked
-            await cur.execute("""
-              select member_id from catalog.member_identities
-              where system='discord' and external_id=%s
-            """, (str(m.id),))
-            r = await cur.fetchone()
-            member_uuid = get_member_id_from_row(r)
-            rows.append(('discord', str(channel.id), member_uuid, str(m.id), True, ORG_ID))
-
-        if rows:
-            await cur.executemany("""
-              insert into silver.component_members (system, component_id, member_id, external_id, can_view, org_id)
-              values (%s,%s,%s,%s,%s,%s)
-            """, rows)
-
-async def backfill_forum_posts(aconn, forum: ForumChannel):
-    """
-    Ensure the forum (container) and all its posts (threads) exist as components.
-    Handles:
-      - active posts: forum.threads
-      - archived posts: forum.archived_threads(...) async iterator
-    """
-    # 0) Upsert the forum container itself (if you haven't already)
-    async with aconn.cursor() as cur:
-        await upsert_component_row(cur, forum)
-    await aconn.commit()
-
-    # 1) Active posts (already-loaded list)
-    if forum.threads:
-        async with aconn.cursor() as cur:
-            for t in forum.threads:
-                await upsert_component_row(cur, t)
-        await aconn.commit()
-
-    # 2) Archived posts — async iterator (DON'T await it; iterate it)
-    # Use 'before' to paginate; each call returns a new iterator.
-    before = None  # can be a Thread or datetime; Thread works fine here
+async def list_forum_threads(forum: ForumChannel) -> List[Thread]:
+    threads: List[Thread] = list(forum.threads)  # active
+    before = None
     while True:
         fetched = 0
         async for t in forum.archived_threads(limit=100, before=before):
-            # each 't' is a Thread representing a forum post
-            async with aconn.cursor() as cur:
-                await upsert_component_row(cur, t)
+            threads.append(t)
+            before = t
             fetched += 1
-            before = t  # paginate based on the last thread seen
-        await aconn.commit()
         if fetched == 0:
             break
+    return threads
+
+async def enumerate_components(guild: discord.Guild):
+    """Yield each component you want to ingest exactly once."""
+    for ch in guild.channels:
+        if isinstance(ch, ForumChannel):
+            yield ch  # forum container
+            for t in await list_forum_threads(ch):
+                yield t  # each forum post (Thread)
+        elif isinstance(ch, TextChannel):
+            yield ch
+        elif isinstance(ch, Thread):
+            yield ch
+
+# --------------------------
+# Backfill — single pass per component
+# --------------------------
+
+async def backfill_component(aconn, guild: discord.Guild, comp):
+    """Upsert component, sync ACL, then messages→mentions→reactions (one pass)."""
+    # Component upsert
+    async with aconn.cursor(row_factory=dict_row) as cur:
+        await upsert_component_row(cur, comp)
+    await aconn.commit()
+
+    # ACL
+    await sync_component_access_latest(aconn, guild, comp)
+    await aconn.commit()
+
+    # Messages + mentions + reactions (only for TextChannel/Thread)
+    if isinstance(comp, (TextChannel, Thread)):
+        count = 0
+        async for msg in comp.history(limit=None, oldest_first=True):
+            async with aconn.cursor(row_factory=dict_row) as cur:
+                # identity (no auto-member)
+                await cur.execute(
+                    "select catalog.ensure_identity_for_discord(%s,%s,%s)",
+                    (ORG_ID, str(msg.author.id), msg.author.name),
+                )
+                author_member_id = await get_linked_member_id(cur, str(msg.author.id))
+
+                # upsert message
+                await cur.execute("""
+                  insert into silver.messages (
+                    org_id, system, message_id, component_id, author_external_id, author_member_id,
+                    content, has_attachments, reply_to_message_id, created_at_ts, raw
+                  )
+                  values (%s,'discord',%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                  on conflict (message_id) do update set
+                    content=excluded.content,
+                    has_attachments=excluded.has_attachments,
+                    reply_to_message_id=excluded.reply_to_message_id,
+                    raw=excluded.raw
+                """, (
+                    ORG_ID, str(msg.id), str(msg.channel.id), str(msg.author.id), author_member_id,
+                    msg.content, bool(msg.attachments),
+                    str(msg.reference.message_id) if (msg.reference and msg.reference.message_id) else None,
+                    msg.created_at,
+                    json.dumps({
+                        "id": str(msg.id),
+                        "channel_id": str(msg.channel.id),
+                        "author_id": str(msg.author.id),
+                        "created_at": msg.created_at.isoformat(),
+                    }),
+                ))
+            # mentions (commits inside)
+            await upsert_message_mentions(aconn, msg)
+
+            # reactions (inline; at-least-once safe)
+            if msg.reactions:
+                async with aconn.cursor(row_factory=dict_row) as cur:
+                    for reaction in msg.reactions:
+                        async for user in reaction.users():
+                            if user.bot:
+                                continue
+                            await cur.execute(
+                                "select catalog.ensure_identity_for_discord(%s,%s,%s)",
+                                (ORG_ID, str(user.id), user.name),
+                            )
+                            member_id = await get_linked_member_id(cur, str(user.id))
+                            await cur.execute("""
+                                insert into silver.message_reactions (org_id, system, message_id, reaction, member_id, created_at_ts)
+                                values (%s, 'discord', %s, %s, %s, %s)
+                                on conflict (message_id, reaction, member_id) do nothing
+                            """, (ORG_ID, str(msg.id), str(reaction.emoji), member_id, msg.created_at))
+            count += 1
+            if BACKFILL_LIMIT and count >= BACKFILL_LIMIT:
+                break
+        await aconn.commit()
 
 async def backfill_history():
-    logging.info("Starting backfill: identities + components + messages + mentions + ACL snapshots")
+    logging.info("Starting backfill: components + ACL + messages + mentions + reactions")
     async with apool.connection() as aconn:
-        async with aconn.cursor(row_factory=dict_row) as cur:
-            for g in bot.guilds:
-                # 1) identities for all guild members (no truncation; idempotent)
+        for g in bot.guilds:
+            if GUILD_ID and str(g.id) != str(GUILD_ID):
+                continue
+
+            # preload/refresh identities for all members (idempotent)
+            async with aconn.cursor(row_factory=dict_row) as cur:
                 for m in g.members:
                     await cur.execute(
                         "select catalog.ensure_identity_for_discord(%s,%s,%s)",
-                        (ORG_ID, str(m.id), m.display_name or m.name),
+                        (ORG_ID, str(m.id), m.name),
                     )
-                await aconn.commit()
+            await aconn.commit()
 
-                # 2) components + ACL snapshots
-                for ch in g.channels:
-                    try:
-                        await upsert_component_row(cur, ch)
-                        await aconn.commit()
+            # enumerate and process each component once
+            try:
+                comps = []
+                # enumerate_components is a normal function, not async generator
+                for comp in await enumerate_components(g):
+                    comps.append(comp)
+            except TypeError:
+                # if enumerate_components was written as generator (not awaited)
+                comps = [comp async for comp in enumerate_components(g)]  # defensive
 
-                        # latest ACL for the container itself (forum/channel/thread)
-                        await sync_component_access_latest(aconn, g, ch)
-                        await aconn.commit()
-
-                        # if it's a forum, also ensure all posts (threads) exist
-                        if isinstance(ch, ForumChannel):
-                            await backfill_forum_posts(aconn, ch)
-                            # and ACL for each post
-                            for t in ch.threads:
-                                await sync_component_access_latest(aconn, g, t)
-                            await aconn.commit()
-
-                        # message history: TextChannel & Thread (includes forum posts)
-                        if isinstance(ch, (TextChannel, Thread)):
-                            count = 0
-                            async for msg in ch.history(limit=None, oldest_first=True):
-                                # ensure identity row for author
-                                await cur.execute(
-                                    "select catalog.ensure_identity_for_discord(%s,%s,%s)",
-                                    (ORG_ID, str(msg.author.id), msg.author.display_name or msg.author.name),
-                                )
-                                # upsert message (same as your live handler)
-                                await cur.execute("""
-                                  with ensured as (
-                                    select member_id from catalog.member_identities
-                                    where system='discord' and external_id=%s
-                                  )
-                                  insert into silver.messages (
-                                    org_id, system, message_id, component_id, author_external_id, author_member_id,
-                                    content, has_attachments, reply_to_message_id, created_at_ts, raw
-                                  )
-                                  values (
-                                    %s,'discord',%s,%s,%s,(select member_id from ensured),
-                                    %s,%s,%s,%s,%s
-                                  )
-                                  on conflict (message_id) do update set
-                                    content=excluded.content,
-                                    has_attachments=excluded.has_attachments,
-                                    reply_to_message_id=excluded.reply_to_message_id,
-                                    raw=excluded.raw
-                                """, (
-                                    str(msg.author.id),
-                                    ORG_ID, str(msg.id), str(msg.channel.id), str(msg.author.id),
-                                    msg.content, bool(msg.attachments),
-                                    str(msg.reference.message_id) if msg.reference and msg.reference.message_id else None,
-                                    msg.created_at, json.dumps({
-                                        "id": str(msg.id),
-                                        "channel_id": str(msg.channel.id),
-                                        "author_id": str(msg.author.id),
-                                        "created_at": msg.created_at.isoformat(),
-                                    })
-                                ))
-                                count += 1
-                                if BACKFILL_LIMIT and count >= BACKFILL_LIMIT:
-                                    break
-                            await aconn.commit()
-
-                            # mentions per message: re-read latest N (or all if cheap)
-                            async for msg in ch.history(limit=BACKFILL_LIMIT or 5000, oldest_first=False):
-                                await upsert_message_mentions(aconn, msg)
-                            await aconn.commit()
-                            
-                            # backfill reactions for messages in this channel
-                            logging.info(f"Backfilling reactions for channel {ch.name}")
-                            reaction_count = await backfill_reactions(aconn, ch, limit=BACKFILL_LIMIT)
-                            logging.info(f"Backfilled reactions for {reaction_count} messages in {ch.name}")
-                    except Exception:
-                        logging.exception(f"Backfill failed for channel {ch} in guild {g.name}")
+            for comp in comps:
+                try:
+                    await backfill_component(aconn, g, comp)
+                except Exception:
+                    logging.exception(f"Backfill failed for component {getattr(comp, 'name', comp.id)} in guild {g.name}")
+                    continue
     logging.info("Backfill complete.")
 
-apool: AsyncConnectionPool | None = None
+# --------------------------
+# Discord Event Handlers
+# --------------------------
 
 @bot.event
 async def on_ready():
@@ -428,31 +398,33 @@ async def on_ready():
             PG_DSN,
             min_size=1,
             max_size=5,
-            kwargs={"row_factory": dict_row}
+            kwargs={"row_factory": dict_row},
         )
-        await apool.open()  # <<< IMPORTANT
+        await apool.open()
 
-    # Log what Discord actually gave you
     if not bot.guilds:
-        logging.warning("Bot is connected but sees 0 guilds. Did you invite it to your server?")
+        logging.warning("Connected but sees 0 guilds. Invite the bot to your server.")
     else:
         logging.info("Guilds visible:")
         for g in bot.guilds:
             logging.info(f"- {g.name} ({g.id})")
 
-    # Prime components only for guilds we actually see
-    async with apool.connection() as aconn:        
+    # Prime known components
+    async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
             for g in bot.guilds:
+                if GUILD_ID and str(g.id) != str(GUILD_ID):
+                    continue
                 for ch in g.channels:
                     try:
                         await upsert_component_row(cur, ch)
-                    except Exception as e:
-                        logging.exception(f"Component prime failed for {ch}: {e}")
+                    except Exception:
+                        logging.exception(f"Component prime failed for {getattr(ch,'name',ch.id)}")
         await aconn.commit()
-    
+
     if BACKFILL:
         await backfill_history()
+
     logging.info(f"Logged in as {bot.user} (guilds={len(bot.guilds)})")
 
 @bot.event
@@ -467,16 +439,11 @@ async def on_guild_channel_create(channel):
 @bot.event
 async def on_guild_channel_update(before, after):
     async with apool.connection() as aconn:
-        # keep component metadata fresh
-        async with aconn.cursor() as cur:
+        async with aconn.cursor(row_factory=dict_row) as cur:
             await upsert_component_row(cur, after)
         await aconn.commit()
-
-        # resync ACL for the channel/thread/forum itself
         await sync_component_access_latest(aconn, after.guild, after)
         await aconn.commit()
-
-        # if a category changed, children inherit → resync all children
         if isinstance(after, CategoryChannel):
             for ch in after.channels:
                 await sync_component_access_latest(aconn, after.guild, ch)
@@ -484,7 +451,6 @@ async def on_guild_channel_update(before, after):
 
 @bot.event
 async def on_guild_channel_delete(channel):
-    # channel removed → remove its ACL rows
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
             await cur.execute("""
@@ -494,10 +460,28 @@ async def on_guild_channel_delete(channel):
         await aconn.commit()
 
 @bot.event
+async def on_thread_create(thread: Thread):
+    async with apool.connection() as aconn:
+        async with aconn.cursor(row_factory=dict_row) as cur:
+            await upsert_component_row(cur, thread)
+        await aconn.commit()
+        await sync_component_access_latest(aconn, thread.guild, thread)
+        await aconn.commit()
+
+@bot.event
+async def on_thread_update(before: Thread, after: Thread):
+    async with apool.connection() as aconn:
+        async with aconn.cursor(row_factory=dict_row) as cur:
+            await upsert_component_row(cur, after)
+        await aconn.commit()
+        await sync_component_access_latest(aconn, after.guild, after)
+        await aconn.commit()
+
+@bot.event
 async def on_guild_role_update(before, after):
     global _role_debounce
     now = time.time()
-    if now - _role_debounce < 5:  # 5s debounce
+    if now - _role_debounce < 5:
         return
     _role_debounce = now
 
@@ -507,32 +491,12 @@ async def on_guild_role_update(before, after):
         await aconn.commit()
 
 @bot.event
-async def on_thread_create(thread):
-    async with apool.connection() as aconn:
-        async with aconn.cursor(row_factory=dict_row) as cur:
-            await upsert_component_row(cur, thread)
-        await aconn.commit()
-    # keep ACL in sync
-    async with apool.connection() as aconn:
-        await sync_component_access_latest(aconn, thread.guild, thread)
-        await aconn.commit()
-
-@bot.event
-async def on_thread_update(before: Thread, after: Thread):
-    async with apool.connection() as aconn:
-        async with aconn.cursor() as cur:
-            await upsert_component_row(cur, after)
-        await aconn.commit()
-        await sync_component_access_latest(aconn, after.guild, after)
-        await aconn.commit()
-
-@bot.event
 async def on_member_join(member):
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
                 "select catalog.ensure_identity_for_discord(%s,%s,%s)",
-                (ORG_ID, str(member.id), member.display_name or member.name),
+                (ORG_ID, str(member.id), member.name),
             )
         await aconn.commit()
 
@@ -558,16 +522,14 @@ async def on_member_remove(member):
     except Exception:
         logging.exception("on_member_remove error")
 
-
 @bot.event
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
 
-    reply_to = str(message.reference.message_id) if message.reference and message.reference.message_id else None
-    created_at = message.created_at  # discord.py provides aware UTC datetimes
+    created_at = message.created_at
     has_att = bool(message.attachments)
-    # Minimal raw snapshot (discord.py doesn't guarantee .to_dict())
+
     raw = {
         "id": str(message.id),
         "channel_id": str(message.channel.id),
@@ -579,52 +541,45 @@ async def on_message(message: discord.Message):
 
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
-            # ensure identity (no auto-member)
+            # identity only (no auto-member)
             await cur.execute(
                 "select catalog.ensure_identity_for_discord(%s,%s,%s)",
-                (ORG_ID, str(message.author.id), message.author.display_name or message.author.name),
+                (ORG_ID, str(message.author.id), message.author.name),
             )
-            # ensure component
             await upsert_component_row(cur, message.channel)
 
-            # ensure member + upsert message
-            await cur.execute(
-                """
-                with ensured as (
-                    select catalog.ensure_member_for_discord(%s,%s,%s) as member_id
-                )
+            reply_to = (str(message.reference.message_id)
+                        if message.reference and message.reference.message_id else None)
+
+            author_member_id = await get_linked_member_id(cur, str(message.author.id))
+
+            await cur.execute("""
                 insert into silver.messages (
                     org_id, system, message_id, component_id, author_external_id, author_member_id,
                     content, has_attachments, reply_to_message_id, created_at_ts, raw
                 )
                 values (
-                    %s,'discord',%s,%s,%s,(select member_id from ensured),
-                    %s,%s,%s,%s,%s
+                    %s,'discord',%s,%s,%s,%s,%s,%s,%s,%s,%s
                 )
                 on conflict (message_id) do update set
                   content=excluded.content,
                   has_attachments=excluded.has_attachments,
                   reply_to_message_id=excluded.reply_to_message_id,
                   raw=excluded.raw
-                """,
-                (
-                    ORG_ID, str(message.author.id), message.author.name,
-                    ORG_ID, str(message.id), str(message.channel.id), str(message.author.id),
-                    message.content, has_att, reply_to, created_at, json.dumps(raw),
-                ),
-            )
-        await aconn.commit()
-        # mentions (after commit so message row exists)
-        await upsert_message_mentions(aconn, message)
+            """, (
+                ORG_ID, str(message.id), str(message.channel.id), str(message.author.id), author_member_id,
+                message.content, has_att, reply_to, created_at, json.dumps(raw),
+            ))
         await aconn.commit()
 
+    await upsert_message_mentions(apool, message)
 
 @bot.event
 async def on_message_edit(before, after):
     raw = {
         "id": str(after.id),
         "content": after.content,
-        "edited_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "edited_at": utcnow().isoformat(),
     }
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
@@ -633,8 +588,8 @@ async def on_message_edit(before, after):
                 (after.content, json.dumps(raw), str(after.id)),
             )
         await aconn.commit()
-        await upsert_message_mentions(aconn, after)
-        await aconn.commit()
+
+    await upsert_message_mentions(apool, after)
 
 @bot.event
 async def on_raw_message_delete(payload):
@@ -648,85 +603,52 @@ async def on_raw_message_delete(payload):
 
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
-    """Handle real-time reaction additions."""
     if payload.member and payload.member.bot:
-        return  # Skip bot reactions
-    
+        return
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
-            # Ensure member exists and get member_id
+            # ensure identity; then resolve link
             await cur.execute(
-                "select catalog.ensure_member_for_discord(%s,%s,%s) as member_id",
-                (ORG_ID, str(payload.user_id), payload.member.name if payload.member else str(payload.user_id))
+                "select catalog.ensure_identity_for_discord(%s,%s,%s)",
+                (ORG_ID, str(payload.user_id), payload.member.name if payload.member else str(payload.user_id)),
             )
-            row = await cur.fetchone()
-            member_id = get_member_id_from_row(row)
-            
-            # Insert or update reaction
+            member_id = await get_linked_member_id(cur, str(payload.user_id))
+
             await cur.execute("""
-                insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
-                values (%s, %s, %s, now())
+                insert into silver.message_reactions (org_id, system, message_id, reaction, member_id, created_at_ts)
+                values (%s, 'discord', %s, %s, %s, now())
                 on conflict (message_id, reaction, member_id) do update
-                    set created_at_ts = now()
-            """, (str(payload.message_id), str(payload.emoji), member_id))
+                    set created_at_ts = now(),        -- bump if re-added
+                        updated_at_ts = now()
+            """, (ORG_ID, str(payload.message_id), str(payload.emoji), member_id))
         await aconn.commit()
 
 @bot.event
 async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
-    """Handle real-time reaction removals."""
     async with apool.connection() as aconn:
         async with aconn.cursor(row_factory=dict_row) as cur:
-            # Get member_id for the user
             await cur.execute("""
                 select member_id from catalog.member_identities
                 where system='discord' and external_id=%s
+                limit 1
             """, (str(payload.user_id),))
             row = await cur.fetchone()
             member_id = get_member_id_from_row(row)
-            
+
             if member_id:
-                # Delete the reaction
                 await cur.execute("""
-                    delete from silver.reactions 
-                    where message_id=%s and reaction=%s and member_id=%s
-                """, (str(payload.message_id), str(payload.emoji), member_id))
+                    delete from silver.message_reactions
+                    where org_id=%s and system='discord'
+                    and message_id=%s and reaction=%s and member_id=%s
+                """, (ORG_ID, str(payload.message_id), str(payload.emoji), member_id))
         await aconn.commit()
 
-async def backfill_reactions(aconn, channel, limit=None):
-    """Backfill reactions for messages in a channel."""
-    count = 0
-    async for msg in channel.history(limit=limit, oldest_first=True):
-        if not msg.reactions:
-            continue
-            
-        for reaction in msg.reactions:
-            # Fetch all users who reacted with this emoji
-            async for user in reaction.users():
-                if user.bot:
-                    continue
-                
-                async with aconn.cursor(row_factory=dict_row) as cur:
-                    # Ensure member exists and get member_id
-                    await cur.execute(
-                        "select catalog.ensure_member_for_discord(%s,%s,%s) as member_id",
-                        (ORG_ID, str(user.id), user.name)
-                    )
-                    row = await cur.fetchone()
-                    member_id = get_member_id_from_row(row)
-                    
-                    # Insert reaction (using message created_at as approximate reaction time for backfill)
-                    await cur.execute("""
-                        insert into silver.reactions (message_id, reaction, member_id, created_at_ts)
-                        values (%s, %s, %s, %s)
-                        on conflict (message_id, reaction, member_id) do nothing
-                    """, (str(msg.id), str(reaction.emoji), member_id, msg.created_at))
-                    
-        count += 1
-        if limit and count >= limit:
-            break
-    
-    await aconn.commit()
-    return count
+# --------------------------
+# Main
+# --------------------------
+
+def main():
+    bot.run(TOKEN)
 
 if __name__ == "__main__":
-    bot.run(TOKEN)
+    main()

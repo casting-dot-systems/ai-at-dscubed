@@ -18,6 +18,7 @@ build-backend = "hatchling.build"
 [tool.uv.workspace]
 members = [
     "apps/darcy",
+    "apps/brain_v2_app",
     "apps/meeting_recorder_bot",
     "libs/cast",
     "libs/org_tools",

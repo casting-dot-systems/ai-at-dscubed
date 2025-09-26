@@ -1,2 +1,3 @@
-create extension if not exists "uuid-ossp";
-create extension if not exists pgcrypto;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE EXTENSION IF NOT EXISTS PGCRYPTO;

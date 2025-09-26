@@ -1,15 +1,21 @@
-create table if not exists silver.components (
-  org_id text not null,
-  system text not null,
-  component_id text not null,
-  parent_component_id text,
-  component_type text not null,
-  name text,
-  is_active boolean default true,
-  created_at_ts timestamptz,
-  updated_at_ts timestamptz,
-  raw jsonb,
-  primary key (system, component_id)
+DROP TABLE IF EXISTS SILVER.COMPONENTS CASCADE;
+
+CREATE TABLE IF NOT EXISTS SILVER.COMPONENTS (
+    ORG_ID TEXT NOT NULL,
+    SYSTEM TEXT NOT NULL,
+    COMPONENT_ID TEXT NOT NULL,
+    PARENT_COMPONENT_ID TEXT,
+    COMPONENT_TYPE TEXT NOT NULL,
+    NAME TEXT,
+    IS_ACTIVE BOOLEAN DEFAULT TRUE,
+    CREATED_AT_TS TIMESTAMPTZ,
+    UPDATED_AT_TS TIMESTAMPTZ,
+    RAW JSONB,
+    PRIMARY KEY (ORG_ID, SYSTEM, COMPONENT_ID)
 );
 
-create index if not exists idx_components_type on silver.components(component_type);
+CREATE INDEX IF NOT EXISTS IDX_COMPONENTS_TYPE ON SILVER.COMPONENTS (COMPONENT_TYPE);
+
+CREATE INDEX IF NOT EXISTS IDX_COMPONENTS_PARENT ON SILVER.COMPONENTS (PARENT_COMPONENT_ID);
+
+CREATE UNIQUE INDEX IF NOT EXISTS UQ_COMPONENTS_ORG_SYSTEM_COMPONENT ON SILVER.COMPONENTS (ORG_ID, SYSTEM, COMPONENT_ID);

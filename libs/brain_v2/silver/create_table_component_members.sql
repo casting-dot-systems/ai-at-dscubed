@@ -1,13 +1,14 @@
-create table if not exists silver.component_members (
-  system text not null,
-  component_id text not null,
-  external_id text not null,
-  member_id uuid,
-  can_view boolean not null default true,
-  org_id text not null,
-  updated_at_ts timestamptz not null default now(),
-  primary key (system, component_id, external_id)
+DROP TABLE IF EXISTS SILVER.COMPONENT_MEMBERS CASCADE;
+
+CREATE TABLE IF NOT EXISTS SILVER.COMPONENT_MEMBERS (
+    SYSTEM TEXT NOT NULL,
+    COMPONENT_ID TEXT NOT NULL,
+    EXTERNAL_ID TEXT NOT NULL,
+    MEMBER_ID UUID,
+    CAN_VIEW BOOLEAN NOT NULL DEFAULT TRUE,
+    ORG_ID TEXT NOT NULL,
+    UPDATED_AT_TS TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (ORG_ID, SYSTEM, COMPONENT_ID, EXTERNAL_ID)
 );
 
-create index if not exists idx_component_members_component
-  on silver.component_members(system, component_id);
+CREATE INDEX IF NOT EXISTS IDX_COMPONENT_MEMBERS_COMPONENT ON SILVER.COMPONENT_MEMBERS (SYSTEM, COMPONENT_ID);

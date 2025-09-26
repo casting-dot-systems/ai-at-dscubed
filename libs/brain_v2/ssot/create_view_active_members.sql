@@ -1,4 +1,7 @@
-create or replace view catalog.v_members_active as
-select *
-from catalog.members
-where status = 'active';
+CREATE OR REPLACE VIEW CATALOG.V_MEMBERS_ACTIVE AS
+SELECT
+    *
+FROM
+    CATALOG.MEMBERS
+WHERE
+    STATUS = 'active';
