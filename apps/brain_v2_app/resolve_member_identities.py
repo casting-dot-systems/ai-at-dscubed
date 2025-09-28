@@ -20,9 +20,8 @@ def find_member(conn, full_name: str):
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute("""
           select member_id, full_name from catalog.members
-          where org_id=%s and full_name ilike %s
-          order by updated_at desc
-        """, (ORG_ID, f"%{full_name}%"))  # <<< add wildcards
+          where full_name=%s
+        """, (full_name))
         return cur.fetchall()
 
 def link_identity(conn, member_id, system, external_id):
